@@ -1,8 +1,9 @@
-const configuredBase = (import.meta.env.VITE_API_BASE_URL || '/api').trim();
-const API_BASE = configuredBase === '' ? '/api' : configuredBase.replace(/\/+$/, '');
+const configuredBase = (import.meta.env.VITE_API_BASE_URL || "/api").trim();
+const API_BASE =
+  configuredBase === "" ? "/api" : configuredBase.replace(/\/+$/, "");
 
 function normalizePath(path) {
-  return path.startsWith('/') ? path : `/${path}`;
+  return path.startsWith("/") ? path : `/${path}`;
 }
 
 export function apiUrl(path) {
@@ -12,6 +13,6 @@ export function apiUrl(path) {
 export function apiFetch(path, options = {}) {
   return fetch(apiUrl(path), {
     ...options,
-    credentials: 'include'
+    credentials: "include",
   });
 }
