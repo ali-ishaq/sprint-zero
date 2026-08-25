@@ -14,9 +14,23 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 8080;
+const allowedOrigins = (process.env.CLIENT_ORIGIN || 'http://localhost:5173')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+const crossSiteCookies = process.env.CROSS_SITE_COOKIES === 'true';
+const secureCookies = crossSiteCookies
+  ? true
+  : process.env.NODE_ENV === 'production' || process.env.COOKIE_SECURE === 'true';
 
 app.use(cors({
-  origin: process.env.CLIENT_ORIGIN || 'http://localhost:5173',
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+      return;
+    }
+    callback(new Error('CORS blocked for this origin'));
+  },
   credentials: true
 }));
 
@@ -28,8 +42,8 @@ app.use(cookieSession({
   secret: process.env.SESSION_SECRET || 'dev-secret-change-in-production',
   maxAge: 30 * 24 * 60 * 60 * 1000,
   httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'lax'
+  secure: secureCookies,
+  sameSite: crossSiteCookies ? 'none' : 'lax'
 }));
 
 initFirestore();

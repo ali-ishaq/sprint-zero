@@ -11,7 +11,7 @@ import { requireAuth } from '../middleware/requireAuth.js';
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
-router.post('/process', requireAuth, upload.single('brief'), async (req, res) => {
+router.post('/', requireAuth, upload.single('brief'), async (req, res) => {
   const userId = req.user.email;
   const runId = crypto.randomUUID();
   

@@ -1,4 +1,4 @@
-export default function SuccessScreen({ result, onNewProject }) {
+export default function SuccessScreen({ result, onNewProject, onViewDashboard }) {
   const { 
     projectName, 
     taskCount, 
@@ -104,7 +104,7 @@ export default function SuccessScreen({ result, onNewProject }) {
             New Project
           </button>
           <button
-            onClick={() => window.location.href = '/dashboard'}
+            onClick={onViewDashboard}
             className="py-3 px-6 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors"
           >
             View Dashboard

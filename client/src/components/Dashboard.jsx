@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
+import { apiFetch } from '../lib/api';
 
 export default function Dashboard({ user, onNewProject, onLogout }) {
   const [runs, setRuns] = useState([]);
@@ -12,7 +13,7 @@ export default function Dashboard({ user, onNewProject, onLogout }) {
 
   const fetchRuns = async () => {
     try {
-      const res = await fetch('/api/runs');
+      const res = await apiFetch('/runs');
       if (!res.ok) throw new Error('Failed to fetch runs');
       const data = await res.json();
       setRuns(data);
@@ -68,7 +69,7 @@ export default function Dashboard({ user, onNewProject, onLogout }) {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h2 className="text-2xl font-bold text-gray-900">Your Projects</h2>
-            <p className="text-gray-500 mt-1">{runs.length} project{run.length !== 1 ? 's' : ''} total</p>
+            <p className="text-gray-500 mt-1">{runs.length} project{runs.length !== 1 ? 's' : ''} total</p>
           </div>
           <button
             onClick={onNewProject}

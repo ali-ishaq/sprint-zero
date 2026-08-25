@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { apiUrl } from '../lib/api';
 
 export default function Login({ onLogin }) {
   const [error, setError] = useState(null);
@@ -28,7 +29,7 @@ export default function Login({ onLogin }) {
   };
 
   const handleLogin = () => {
-    window.location.href = '/api/auth/login';
+    window.location.href = apiUrl('/auth/login');
   };
 
   if (loading) {
