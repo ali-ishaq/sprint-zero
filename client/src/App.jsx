@@ -98,6 +98,7 @@ export default function App() {
           ...prev,
           { step: "error", status: "error", data: err.message },
         ]);
+        setResult(null);
       }
     } finally {
       setAbortController(null);
@@ -105,6 +106,10 @@ export default function App() {
   };
 
   const handleComplete = (finalEvent) => {
+    if (finalEvent.status !== "complete") {
+      setResult(null);
+      return;
+    }
     setResult(finalEvent.data);
     setView("success");
   };
@@ -133,7 +138,13 @@ export default function App() {
       case "upload":
         return <UploadForm onSubmit={handleUpload} onBack={handleBack} />;
       case "processing":
-        return <AgentLog events={events} onComplete={handleComplete} />;
+        return (
+          <AgentLog
+            events={events}
+            onComplete={handleComplete}
+            onBack={handleBack}
+          />
+        );
       case "success":
         return (
           <SuccessScreen

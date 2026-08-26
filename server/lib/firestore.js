@@ -53,8 +53,11 @@ export async function getUser(uid) {
 
 export async function createRun(runData) {
   const db = getDb();
-  const ref = await db.collection("runs").add({
-    ...runData,
+  const { runId, ...data } = runData;
+  const ref = db.collection("runs").doc(runId);
+  await ref.set({
+    ...data,
+    runId,
     createdAt: FieldValue.serverTimestamp(),
   });
   return ref.id;

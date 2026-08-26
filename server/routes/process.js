@@ -7,6 +7,7 @@ import { rootPipeline } from "../lib/agents/pipeline.js";
 import { getAuthedClient } from "../lib/googleAuth.js";
 import { createRun, updateRun } from "../lib/firestore.js";
 import { requireAuth } from "../middleware/requireAuth.js";
+import { normalizePlan } from "../lib/agents/agentEvents.js";
 
 const router = Router();
 const upload = multer({
@@ -37,14 +38,19 @@ router.post("/", requireAuth, upload.single("brief"), async (req, res) => {
 
   const projectName = req.body.projectName || "Untitled Project";
 
-  await createRun({
-    runId,
-    userId,
-    projectName,
-    status: "running",
-    taskCount: 0,
-    meetingCount: 0,
-  });
+  try {
+    await createRun({
+      runId,
+      userId,
+      projectName,
+      status: "running",
+      taskCount: 0,
+      meetingCount: 0,
+    });
+  } catch (err) {
+    console.error("Failed to create run:", err);
+    return res.status(500).json({ error: "Failed to start processing" });
+  }
 
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
@@ -82,6 +88,12 @@ router.post("/", requireAuth, upload.single("brief"), async (req, res) => {
       agent: rootPipeline,
       appName: "sprintzero",
     });
+    await runner.sessionService.createSession({
+      appName: "sprintzero",
+      userId,
+      sessionId,
+      state: initialState,
+    });
 
     let finalState = {};
     let hasError = false;
@@ -94,7 +106,10 @@ router.post("/", requireAuth, upload.single("brief"), async (req, res) => {
     })) {
       const step = event.author;
       const eventData = event.content?.parts?.[0]?.text;
-      const parsedData = parseEventData(eventData);
+      const parsedData =
+        step === "planner"
+          ? normalizePlan(parseEventData(eventData))
+          : parseEventData(eventData);
       let status = "progress";
 
       if (event.actions?.stateDelta) {
@@ -166,7 +181,11 @@ router.post("/", requireAuth, upload.single("brief"), async (req, res) => {
     });
   } catch (err) {
     console.error("Pipeline error:", err);
-    await updateRun(runId, { status: "error" });
+    try {
+      await updateRun(runId, { status: "error" });
+    } catch (updateError) {
+      console.error("Failed to mark run as errored:", updateError);
+    }
     sendEvent({ step: "error", status: "error", data: err.message, runId });
   } finally {
     res.end();

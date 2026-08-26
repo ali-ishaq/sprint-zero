@@ -1,6 +1,6 @@
 import { BaseAgent } from "@google/adk";
 import { createCalendarEvents } from "../tools/calendar.js";
-import { failureResult, resultEvent } from "./agentEvents.js";
+import { failureResult, normalizePlan, resultEvent } from "./agentEvents.js";
 
 export class CalendarAgent extends BaseAgent {
   constructor() {
@@ -8,8 +8,8 @@ export class CalendarAgent extends BaseAgent {
   }
 
   async *runAsyncImpl(ctx) {
-    const plan = ctx.session.state.get("plan");
-    const auth = ctx.session.state.get("googleAuth");
+    const plan = normalizePlan(ctx.session.state.plan);
+    const auth = ctx.session.state.googleAuth;
 
     if (!plan || !plan.tasks || !plan.sync_meetings) {
       yield resultEvent(

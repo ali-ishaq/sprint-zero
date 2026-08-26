@@ -1,6 +1,6 @@
 import { BaseAgent } from "@google/adk";
 import { sendSummaryEmails } from "../tools/gmail.js";
-import { failureResult, resultEvent } from "./agentEvents.js";
+import { failureResult, normalizePlan, resultEvent } from "./agentEvents.js";
 
 export class EmailAgent extends BaseAgent {
   constructor() {
@@ -8,9 +8,9 @@ export class EmailAgent extends BaseAgent {
   }
 
   async *runAsyncImpl(ctx) {
-    const plan = ctx.session.state.get("plan");
-    const sheetResult = ctx.session.state.get("sheetResult");
-    const auth = ctx.session.state.get("googleAuth");
+    const plan = normalizePlan(ctx.session.state.plan);
+    const sheetResult = ctx.session.state.sheetResult;
+    const auth = ctx.session.state.googleAuth;
 
     if (!plan || !plan.tasks) {
       yield resultEvent(

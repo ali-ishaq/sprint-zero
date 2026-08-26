@@ -35,7 +35,10 @@ export const plannerAgent = new LlmAgent({
     (one task's output blocks another's start). Only include attendees actually
     involved in the dependent tasks. For each meeting write a 3-bullet agenda:
     what should be done by that date, what needs to be decided or handed off.
-    Return only JSON matching the required schema, no prose.`,
+    Return exactly one JSON object with top-level keys "tasks" and
+    "sync_meetings". The tasks array must contain 6-12 tasks and the
+    sync_meetings array must contain 2-3 meetings. Do not return an array,
+    "project_name", or any prose.`,
   outputKey: "plan",
   outputSchema: PlanSchema,
 });

@@ -7,8 +7,6 @@ export function resultEvent(
   result,
   text = JSON.stringify(result),
 ) {
-  ctx.session.state.set(resultKey, result);
-
   return createEvent({
     author,
     invocationId: ctx.invocationId,
@@ -19,4 +17,13 @@ export function resultEvent(
 
 export function failureResult(message) {
   return { failed: true, error: message };
+}
+
+export function normalizePlan(plan) {
+  if (!Array.isArray(plan)) return plan;
+
+  return {
+    tasks: plan.flatMap((item) => item?.tasks || []),
+    sync_meetings: plan.flatMap((item) => item?.sync_meetings || []),
+  };
 }
