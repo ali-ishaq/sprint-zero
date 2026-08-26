@@ -73,13 +73,30 @@ export async function updateRun(runId, updates) {
 
 export async function getRunsByUser(userId, limit = 50) {
   const db = getDb();
-  const snapshot = await db
-    .collection("runs")
-    .where("userId", "==", userId)
-    .orderBy("createdAt", "desc")
-    .limit(limit)
-    .get();
-  return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  const query = db.collection("runs").where("userId", "==", userId);
+
+  try {
+    const snapshot = await query
+      .orderBy("createdAt", "desc")
+      .limit(limit)
+      .get();
+    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  } catch (error) {
+    if (error.code !== 9) throw error;
+
+    console.warn(
+      "Firestore composite index for runs is unavailable; using an in-memory fallback.",
+    );
+    const snapshot = await query.get();
+    return snapshot.docs
+      .map((doc) => ({ id: doc.id, ...doc.data() }))
+      .sort(
+        (left, right) =>
+          (right.createdAt?.toMillis?.() ?? 0) -
+          (left.createdAt?.toMillis?.() ?? 0),
+      )
+      .slice(0, limit);
+  }
 }
 
 export async function getRun(runId) {

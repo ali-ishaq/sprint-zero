@@ -55,6 +55,16 @@ router.post("/", requireAuth, upload.single("brief"), async (req, res) => {
     res.write(`data: ${JSON.stringify(data)}\n\n`);
   };
 
+  const parseEventData = (text) => {
+    if (!text) return null;
+
+    try {
+      return JSON.parse(text);
+    } catch {
+      return text;
+    }
+  };
+
   try {
     const googleAuth = await getAuthedClient(userId);
 
@@ -84,6 +94,7 @@ router.post("/", requireAuth, upload.single("brief"), async (req, res) => {
     })) {
       const step = event.author;
       const eventData = event.content?.parts?.[0]?.text;
+      const parsedData = parseEventData(eventData);
       let status = "progress";
 
       if (event.actions?.stateDelta) {
@@ -101,7 +112,7 @@ router.post("/", requireAuth, upload.single("brief"), async (req, res) => {
       sendEvent({
         step,
         status,
-        data: eventData ? JSON.parse(eventData) : null,
+        data: parsedData,
         runId,
       });
 
@@ -110,13 +121,13 @@ router.post("/", requireAuth, upload.single("brief"), async (req, res) => {
       }
 
       if (step === "planner" && eventData) {
-        finalState.plan = JSON.parse(eventData);
+        finalState.plan = parsedData;
       } else if (step === "sheets" && eventData) {
-        finalState.sheetResult = JSON.parse(eventData);
+        finalState.sheetResult = parsedData;
       } else if (step === "calendar" && eventData) {
-        finalState.calendarResult = JSON.parse(eventData);
+        finalState.calendarResult = parsedData;
       } else if (step === "email" && eventData) {
-        finalState.emailResult = JSON.parse(eventData);
+        finalState.emailResult = parsedData;
       }
     }
 

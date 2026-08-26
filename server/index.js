@@ -63,6 +63,15 @@ app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
+app.use((error, req, res, next) => {
+  console.error("Request failed:", error);
+  if (res.headersSent) {
+    next(error);
+    return;
+  }
+  res.status(500).json({ error: "Internal server error" });
+});
+
 app.listen(PORT, () => {
   console.log(`SprintZero server running on http://localhost:${PORT}`);
 });
