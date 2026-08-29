@@ -10,6 +10,7 @@ export class SheetsAgent extends BaseAgent {
   async *runAsyncImpl(ctx) {
     const plan = normalizePlan(ctx.session.state.plan);
     const auth = ctx.session.state.googleAuth;
+    const projectName = ctx.session.state.projectName || "SprintZero Project";
 
     if (!plan || !plan.tasks) {
       yield resultEvent(
@@ -23,7 +24,7 @@ export class SheetsAgent extends BaseAgent {
     }
 
     try {
-      const result = await createSheet(plan.tasks, plan.sync_meetings || [], auth);
+      const result = await createSheet(plan.tasks, plan.sync_meetings || [], auth, projectName);
       yield resultEvent(ctx, this.name, "sheetResult", result);
     } catch (err) {
       yield resultEvent(

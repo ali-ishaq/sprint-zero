@@ -10,6 +10,7 @@ export class CalendarAgent extends BaseAgent {
   async *runAsyncImpl(ctx) {
     const plan = normalizePlan(ctx.session.state.plan);
     const auth = ctx.session.state.googleAuth;
+    const projectName = ctx.session.state.projectName || "SprintZero Project";
 
     if (!plan || !plan.tasks || !plan.sync_meetings) {
       yield resultEvent(
@@ -27,6 +28,7 @@ export class CalendarAgent extends BaseAgent {
         plan.tasks,
         plan.sync_meetings,
         auth,
+        projectName,
       );
       yield resultEvent(ctx, this.name, "calendarResult", result);
     } catch (err) {

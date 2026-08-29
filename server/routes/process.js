@@ -31,12 +31,16 @@ router.post("/", requireAuth, upload.single("brief"), async (req, res) => {
   }
 
   if (!teamMembers || teamMembers.length === 0) {
-    return res.status(400).json({ error: "At least one team member is required" });
+    return res
+      .status(400)
+      .json({ error: "At least one team member is required" });
   }
 
   for (const member of teamMembers) {
     if (!member.name?.trim() || !member.role?.trim() || !member.email?.trim()) {
-      return res.status(400).json({ error: "All team members must have name, role, and email" });
+      return res
+        .status(400)
+        .json({ error: "All team members must have name, role, and email" });
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(member.email.trim())) {
       return res.status(400).json({ error: "All emails must be valid" });
@@ -90,17 +94,31 @@ router.post("/", requireAuth, upload.single("brief"), async (req, res) => {
     const googleAuth = await getAuthedClient(userId);
 
     const sessionId = `run-${runId}`;
+    const todayDate = new Date().toISOString().slice(0, 10);
     const initialState = {
       pdfContent: pdfText,
       teamMembers,
       googleAuth,
       projectName,
+      todayDate,
     };
 
-    const teamMembersText = teamMembers
+const teamMembersText = teamMembers
       .map((m) => `${m.name} (${m.role}) - ${m.email}`)
       .join("\n");
-    const userMessage = `Project Brief:\n${pdfText}\n\nTeam Members:\n${teamMembersText}\n\nProject Name: ${projectName}`;
+    
+    // Formatted team members for planner agent instruction template
+    const teamMembersForPrompt = teamMembers
+      .map((m) => `- ${m.name} | Role: ${m.role} | Email: ${m.email}`)
+      .join("\n");
+
+    const userMessage = `Project Brief:\n${pdfText}\n\nTeam Members:\n${teamMembersText}\n\nProject Name: ${projectName}\n\nToday's Date: ${todayDate}`;
+
+    const initialStateWithPrompt = {
+      ...initialState,
+      teamMembersPrompt: teamMembersForPrompt,
+      todayDate,
+    };
 
     const runner = new InMemoryRunner({
       agent: rootPipeline,
@@ -111,7 +129,7 @@ router.post("/", requireAuth, upload.single("brief"), async (req, res) => {
       appName: "sprintzero",
       userId,
       sessionId,
-      state: initialState,
+      state: initialStateWithPrompt,
     });
 
     let finalState = {};
@@ -155,7 +173,10 @@ router.post("/", requireAuth, upload.single("brief"), async (req, res) => {
       }
 
       if (step === "planner" && eventData) {
-        console.log(`[planner][run ${runId}]`, JSON.stringify(parsedData, null, 2));
+        console.log(
+          `[planner][run ${runId}]`,
+          JSON.stringify(eventData, null, 2),
+        );
         finalState.plan = parsedData;
       } else if (step === "sheets" && eventData) {
         finalState.sheetResult = parsedData;

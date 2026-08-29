@@ -1,16 +1,23 @@
 import { google } from "googleapis";
 
+function isValidEmail(email) {
+  return typeof email === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
 function getTaskEmail(task) {
   if (typeof task?.email === "string" && task.email.trim()) {
-    return task.email.trim();
+    const email = task.email.trim();
+    if (isValidEmail(email)) return email;
   }
   if (typeof task?.assignee_email === "string" && task.assignee_email.trim()) {
-    return task.assignee_email.trim();
+    const email = task.assignee_email.trim();
+    if (isValidEmail(email)) return email;
   }
+  // Fallback - but this will likely fail delivery
   return task.assignee.toLowerCase().replace(/\s+/g, ".") + "@example.com";
 }
 
-function buildEmailBody(assignee, userTasks, userMeetings, sheetUrl) {
+function buildEmailBody(assignee, userTasks, userMeetings, sheetUrl, projectName) {
   const taskLines = userTasks
     .map(
       (t) =>
@@ -25,7 +32,19 @@ function buildEmailBody(assignee, userTasks, userMeetings, sheetUrl) {
     )
     .join("\n");
 
-  return `Hi ${assignee},\n\nYour tasks for this sprint:\n\n${taskLines}\n\nYour meetings:\n\n${meetingLines || 'No meetings scheduled'}\n\nFull project plan: ${sheetUrl}\n\n— SprintZero`;
+  return `Hi ${assignee},
+
+Your tasks for the "${projectName}" project:
+
+${taskLines}
+
+Your meetings:
+
+${meetingLines || 'No meetings scheduled'}
+
+Full project plan: ${sheetUrl}
+
+— SprintZero`;
 }
 
 function encodeBase64Url(str) {
@@ -36,17 +55,18 @@ function encodeBase64Url(str) {
     .replace(/=+$/, "");
 }
 
-function getMeetingEmail(meeting) {
-  if (meeting.email && meeting.email.trim()) {
-    return meeting.email.trim();
+function getMeetingEmail(attendee) {
+  if (attendee.email && attendee.email.trim()) {
+    const email = attendee.email.trim();
+    if (isValidEmail(email)) return email;
   }
-  if (meeting.name) {
-    return meeting.name.toLowerCase().replace(/\s+/g, ".") + "@example.com";
+  if (attendee.name) {
+    return attendee.name.toLowerCase().replace(/\s+/g, ".") + "@example.com";
   }
   return null;
 }
 
-export async function sendSummaryEmails(tasks, meetings, sheetUrl, auth) {
+export async function sendSummaryEmails(tasks, meetings, sheetUrl, auth, projectName = "SprintZero Project") {
   const gmail = google.gmail({ version: "v1", auth });
 
   const byAssignee = tasks.reduce((acc, task) => {
@@ -61,7 +81,7 @@ export async function sendSummaryEmails(tasks, meetings, sheetUrl, auth) {
   for (const meeting of meetings) {
     for (const attendee of meeting.attendees || []) {
       const assignee = attendee.name;
-      const email = attendee.email || getMeetingEmail(attendee);
+      const email = getMeetingEmail(attendee);
       if (!byAssignee[assignee]) {
         byAssignee[assignee] = { email, tasks: [], meetings: [] };
       }
@@ -71,12 +91,24 @@ export async function sendSummaryEmails(tasks, meetings, sheetUrl, auth) {
 
   let sentCount = 0;
   const failedRecipients = [];
+  const sentDetails = [];
 
   for (const [assignee, record] of Object.entries(byAssignee)) {
+    const email = record.email;
+    const isRealEmail = isValidEmail(email) && !email.endsWith("@example.com");
+    
+    console.log(`[Gmail] Preparing email for ${assignee} -> ${email} (real: ${isRealEmail})`);
+    console.log(`[Gmail] Tasks: ${record.tasks.length}, Meetings: ${record.meetings.length}`);
+
+    if (!isRealEmail) {
+      console.warn(`[Gmail] Skipping ${assignee} - invalid or placeholder email: ${email}`);
+      failedRecipients.push(`${assignee} (invalid email: ${email})`);
+      continue;
+    }
+
     try {
-      const email = record.email;
-      const subject = "Your SprintZero Task Assignments & Meetings";
-      const body = buildEmailBody(assignee, record.tasks, record.meetings, sheetUrl);
+      const subject = `[${projectName}] Your SprintZero Task Assignments & Meetings`;
+      const body = buildEmailBody(assignee, record.tasks, record.meetings, sheetUrl, projectName);
 
       const message = [`To: ${email}`, `Subject: ${subject}`, "", body].join(
         "\n",
@@ -84,17 +116,19 @@ export async function sendSummaryEmails(tasks, meetings, sheetUrl, auth) {
 
       const encoded = encodeBase64Url(message);
 
-      await gmail.users.messages.send({
+      const result = await gmail.users.messages.send({
         userId: "me",
         requestBody: { raw: encoded },
       });
 
+      console.log(`[Gmail] Sent to ${assignee} (${email}), messageId: ${result.data.id}`);
       sentCount++;
+      sentDetails.push({ assignee, email, messageId: result.data.id });
     } catch (err) {
-      console.error(`Failed to send email to ${assignee}:`, err.message);
-      failedRecipients.push(assignee);
+      console.error(`[Gmail] Failed to send email to ${assignee} (${email}):`, err.message);
+      failedRecipients.push(`${assignee} (${email})`);
     }
   }
 
-  return { sentCount, failedRecipients, failed: failedRecipients.length > 0 };
+  return { sentCount, failedRecipients, sentDetails, failed: failedRecipients.length > 0 };
 }

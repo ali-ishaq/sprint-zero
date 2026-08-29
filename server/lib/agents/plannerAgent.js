@@ -1,59 +1,67 @@
-import { LlmAgent } from "@google/adk";
+import { LlmAgent, zodObjectToSchema } from "@google/adk";
+import { z } from "zod";
 import { resultEvent } from "./agentEvents.js";
 
-const PLANNER_INSTRUCTION = `You are an expert project planner. Given a project brief and a list of team members with their roles and emails, create a detailed Work Breakdown Structure (WBS) and meeting plan.
+const TaskSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  assignee: z.string(),
+  email: z.string().email(),
+  start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  due_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  depends_on: z.array(z.string()),
+  description: z.string(),
+});
 
-OUTPUT FORMAT: You must output a JSON object with exactly this structure:
-{
-  "tasks": [
-    {
-      "id": "task-1",
-      "title": "Task title",
-      "assignee": "Team member name",
-      "email": "assignee@email.com",
-      "start_date": "YYYY-MM-DD",
-      "due_date": "YYYY-MM-DD",
-      "depends_on": ["task-id"],
-      "description": "Detailed description"
-    }
-  ],
-  "sync_meetings": [
-    {
-      "meeting_title": "Meeting title",
-      "date": "YYYY-MM-DD",
-      "time": "HH:MM",
-      "attendees": [
-        { "name": "Member name", "email": "member@email.com" }
-      ],
-      "related_task_ids": ["task-id"],
-      "agenda": "Meeting agenda"
-    }
-  ]
-}
+const MeetingSchema = z.object({
+  meeting_title: z.string(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  time: z.string(),
+  attendees: z.array(z.object({ name: z.string(), email: z.string().email() })),
+  related_task_ids: z.array(z.string()),
+  agenda: z.string(),
+});
 
-RULES:
-1. Generate 3-8 tasks based on the project scope
+const PlannerOutputSchema = z.object({
+  tasks: z.array(TaskSchema),
+  sync_meetings: z.array(MeetingSchema),
+});
+
+const plannerOutputSchema = zodObjectToSchema(PlannerOutputSchema);
+
+const PLANNER_INSTRUCTION = `You are an expert project planner. Create a detailed Work Breakdown Structure (WBS) and meeting plan for the given project.
+
+TODAY'S DATE: {{todayDate}}
+
+CRITICAL RULES - YOU MUST FOLLOW THESE:
+1. ONLY use team members from the provided list below. DO NOT invent names, emails, or roles.
 2. Assign each task to the team member whose role BEST fits the task:
-   - Frontend tasks → Frontend Developer / Full Stack Developer
-   - Backend/API tasks → Backend Developer / Full Stack Developer
-   - Design/UI tasks → Designer
+   - Frontend/UI tasks → Frontend Developer / Full Stack Developer
+   - Backend/API/Database tasks → Backend Developer / Full Stack Developer
+   - Design/UI/UX tasks → Designer
    - Testing/QA tasks → QA Engineer
    - Infrastructure/DevOps tasks → DevOps Engineer
    - Data/ML tasks → Data Scientist
    - Management/coordination → Project Manager
    - If no exact match, pick the closest role (e.g., Full Stack for backend if no Backend dev)
-3. Set realistic start/due dates in chronological order with dependencies
-4. Include dependencies (depends_on) between related tasks
-5. Generate 2-4 sync meetings (kickoff, review, handoff, etc.)
-6. Meeting attendees must include relevant team members
-7. Use the exact email from the team member data
-8. Dates should start from tomorrow or next week
-9. All fields are required - no empty strings
-10. Output ONLY the JSON, no extra text`;
+3. Generate 3-8 tasks based on project scope
+4. PROJECT START DATE: The project MUST start the day AFTER today's date ({{todayDate}}). The first task and kickoff meeting must be scheduled no earlier than the next day. NEVER use past dates.
+5. TIMELINE: If the project brief specifies a deadline/timeline, schedule tasks to fit within it. If the brief does NOT specify a timeline, estimate a reasonable project duration based on scope and complexity (e.g., a simple app ~1-2 weeks, a complex system ~3-6 weeks). Space tasks across this duration in chronological order with dependencies (depends_on).
+6. Generate 2-4 sync meetings (kickoff, review, handoff, etc.) scheduled within the project duration.
+7. Meeting attendees must be from the provided team member list.
+8. Use the EXACT email from the team member data.
+9. All dates must be in YYYY-MM-DD format and all times in 24-hour format (e.g., "14:00") or 12-hour with AM/PM (e.g., "2:00 PM").
+10. All fields are required - no empty strings.
+
+TEAM MEMBERS (use ONLY these people):
+{{teamMembersPrompt}}
+
+Output a JSON object with "tasks" and "sync_meetings" arrays.`;
 
 export const plannerAgent = new LlmAgent({
   name: "planner",
-  model: "gemini-2.0-flash",
+  model: "gemini-3.5-flash",
   instruction: PLANNER_INSTRUCTION,
   outputKey: "plan",
+  outputSchema: plannerOutputSchema,
 });

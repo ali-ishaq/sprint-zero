@@ -57,10 +57,16 @@ function normalizeTask(task, index = 0) {
     return null;
   }
 
+  const email =
+    (typeof task.email === "string" && task.email.trim()) ||
+    (typeof task.assignee_email === "string" && task.assignee_email.trim()) ||
+    "";
+
   return {
     id: task.id || `task-${index + 1}`,
     title,
     assignee: task.assignee || "Unassigned",
+    email,
     start_date: task.start_date || "",
     due_date: task.due_date || "",
     depends_on: Array.isArray(task.depends_on) ? task.depends_on : [],

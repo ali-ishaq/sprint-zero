@@ -11,6 +11,7 @@ export class EmailAgent extends BaseAgent {
     const plan = normalizePlan(ctx.session.state.plan);
     const sheetResult = ctx.session.state.sheetResult;
     const auth = ctx.session.state.googleAuth;
+    const projectName = ctx.session.state.projectName || "SprintZero Project";
 
     if (!plan || !plan.tasks) {
       yield resultEvent(
@@ -40,6 +41,7 @@ export class EmailAgent extends BaseAgent {
         plan.sync_meetings || [],
         sheetResult.sheetUrl,
         auth,
+        projectName,
       );
       yield resultEvent(ctx, this.name, "emailResult", result);
     } catch (err) {

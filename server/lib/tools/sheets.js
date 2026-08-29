@@ -1,13 +1,14 @@
 import { google } from "googleapis";
 
-export async function createSheet(tasks, meetings, auth) {
+export async function createSheet(tasks, meetings, auth, projectName = "SprintZero Project") {
   const sheets = google.sheets({ version: "v4", auth });
+  const drive = google.drive({ version: "v3", auth });
 
   const createRes = await sheets.spreadsheets.create({
     requestBody: {
-      properties: { title: "SprintZero Task Breakdown" },
+      properties: { title: projectName },
       sheets: [
-        { properties: { title: "Tasks", gridProperties: { columnCount: 7 } } },
+        { properties: { title: "Tasks", gridProperties: { columnCount: 8 } } },
         {
           properties: { title: "Meetings", gridProperties: { columnCount: 6 } },
         },
@@ -20,6 +21,19 @@ export async function createSheet(tasks, meetings, auth) {
   const meetingsSheetId = createRes.data.sheets?.[1]?.properties?.sheetId ?? 1;
   const sheetUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}`;
 
+  // Make the spreadsheet public - anyone with the link can edit
+  try {
+    await drive.permissions.create({
+      fileId: spreadsheetId,
+      requestBody: {
+        role: "writer",
+        type: "anyone",
+      },
+    });
+  } catch (err) {
+    console.warn("Failed to set sheet sharing permission:", err.message);
+  }
+
   // Tasks sheet
   const tasksHeaders = [
     [
@@ -30,12 +44,13 @@ export async function createSheet(tasks, meetings, auth) {
       "Due Date",
       "Depends On",
       "Description",
+      "Status",
     ],
   ];
 
   await sheets.spreadsheets.values.update({
     spreadsheetId,
-    range: "Tasks!A1:G1",
+    range: "Tasks!A1:H1",
     valueInputOption: "RAW",
     requestBody: { values: tasksHeaders },
   });
@@ -62,6 +77,25 @@ export async function createSheet(tasks, meetings, auth) {
               "userEnteredFormat(backgroundColor,textFormat,horizontalAlignment)",
           },
         },
+        // Add data validation for Status column (checkbox)
+        {
+          setDataValidation: {
+            range: {
+              sheetId: tasksSheetId,
+              startRowIndex: 1,
+              endRowIndex: 1000,
+              startColumnIndex: 7,
+              endColumnIndex: 8,
+            },
+            rule: {
+              condition: {
+                type: "BOOLEAN",
+              },
+              showCustomUi: true,
+              strict: true,
+            },
+          },
+        },
       ],
     },
   });
@@ -74,6 +108,7 @@ export async function createSheet(tasks, meetings, auth) {
     t.due_date,
     t.depends_on?.join(", ") || "",
     t.description || "",
+    false, // Status - default to unchecked (false)
   ]);
 
   await sheets.spreadsheets.values.append({
@@ -151,7 +186,7 @@ export async function createSheet(tasks, meetings, auth) {
               sheetId: tasksSheetId,
               dimension: "COLUMNS",
               startIndex: 0,
-              endIndex: 7,
+              endIndex: 8,
             },
           },
         },
