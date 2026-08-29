@@ -23,14 +23,14 @@ function buildEmailBody(assignee, userTasks, userMeetings, sheetUrl, projectName
       (t) =>
         `- ${t.title} (Due: ${t.due_date}${t.depends_on ? `, Depends on: ${t.depends_on.join(", ")}` : ""})`,
     )
-    .join("\n");
+    .join("\n\n");
 
   const meetingLines = userMeetings
-    .map(
-      (m) =>
-        `- ${m.meeting_title} on ${m.date} at ${m.time} (Agenda: ${m.agenda})`,
-    )
-    .join("\n");
+    .map((m) => {
+      const base = `- ${m.meeting_title} on ${m.date} at ${m.time} (Agenda: ${m.agenda})`;
+      return m.meetLink ? `${base}\n  Join: ${m.meetLink}` : base;
+    })
+    .join("\n\n");
 
   return `Hi ${assignee},
 

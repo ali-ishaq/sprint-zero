@@ -4,6 +4,7 @@ import UploadForm from "./components/UploadForm";
 import AgentLog from "./components/AgentLog";
 import SuccessScreen from "./components/SuccessScreen";
 import Dashboard from "./components/Dashboard";
+import ProjectDetail from "./components/ProjectDetail";
 import { apiFetch } from "./lib/api";
 
 export default function App() {
@@ -12,6 +13,7 @@ export default function App() {
   const [events, setEvents] = useState([]);
   const [result, setResult] = useState(null);
   const [abortController, setAbortController] = useState(null);
+  const [selectedRunId, setSelectedRunId] = useState(null);
 
   useEffect(() => {
     checkAuth();
@@ -48,6 +50,16 @@ export default function App() {
     setView("upload");
     setEvents([]);
     setResult(null);
+  };
+
+  const handleViewProject = (runId) => {
+    setSelectedRunId(runId);
+    setView("project");
+  };
+
+  const handleBackFromProject = () => {
+    setSelectedRunId(null);
+    setView("dashboard");
   };
 
   const handleUpload = async (formData) => {
@@ -132,7 +144,16 @@ export default function App() {
           <Dashboard
             user={user}
             onNewProject={handleNewProject}
+            onViewProject={handleViewProject}
             onLogout={handleLogout}
+          />
+        );
+      case "project":
+        return (
+          <ProjectDetail
+            key={selectedRunId}
+            runId={selectedRunId}
+            onBack={handleBackFromProject}
           />
         );
       case "upload":

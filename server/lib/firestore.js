@@ -107,3 +107,22 @@ export async function getRun(runId) {
   const doc = await db.collection("runs").doc(runId).get();
   return doc.exists ? { id: doc.id, ...doc.data() } : null;
 }
+
+export async function updateRunTaskStatus(runId, taskId, status) {
+  const db = getDb();
+  const ref = db.collection("runs").doc(runId);
+  const snapshot = await ref.get();
+  if (!snapshot.exists) return null;
+
+  const tasks = snapshot.data()?.tasks || [];
+  const updatedTasks = tasks.map((t) =>
+    t.id === taskId ? { ...t, status: Boolean(status) } : t,
+  );
+
+  await ref.update({
+    tasks: updatedTasks,
+    updatedAt: FieldValue.serverTimestamp(),
+  });
+
+  return updatedTasks;
+}

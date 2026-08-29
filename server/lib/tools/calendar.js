@@ -88,6 +88,8 @@ export async function createCalendarEvents(tasks, meetings, auth, projectName = 
 
   let createdCount = 0;
   let failedCount = 0;
+  const meetingLinks = [];
+  let meetCounter = 0;
 
   for (const task of tasks) {
     if (!task || !task.title || !task.due_date) {
@@ -176,7 +178,8 @@ export async function createCalendarEvents(tasks, meetings, auth, projectName = 
 
       const attendees = formatAttendees(meeting.attendees);
 
-      await calendar.events.insert({
+      const requestId = `sz-${projectName}-${meeting.meeting_title}-${Date.now()}-${meetCounter++}`;
+      const insertRes = await calendar.events.insert({
         calendarId,
         requestBody: {
           summary: `${projectName}: ${meeting.meeting_title}`,
@@ -185,8 +188,27 @@ export async function createCalendarEvents(tasks, meetings, auth, projectName = 
           end,
           attendees,
           reminders: { useDefault: true },
+          conferenceData: {
+            createRequest: {
+              requestId,
+              conferenceSolutionKey: { type: "hangoutsMeet" },
+            },
+          },
         },
+        conferenceDataVersion: 1,
       });
+
+      const meetLink =
+        insertRes.data.hangoutLink ||
+        insertRes.data.conferenceData?.entryPoints?.find(
+          (e) => e.entryPointType === "video",
+        )?.uri ||
+        null;
+
+      if (meetLink) {
+        meetingLinks.push({ meeting_title: meeting.meeting_title, meetLink });
+      }
+
       createdCount++;
     } catch (err) {
       console.error(`Failed to create meeting event:`, err.message);
@@ -195,5 +217,5 @@ export async function createCalendarEvents(tasks, meetings, auth, projectName = 
   }
 
   const calendarLink = `https://calendar.google.com/calendar/u/0/r`;
-  return { calendarLink, createdCount, failedCount, failed: failedCount > 0 };
+  return { calendarLink, createdCount, failedCount, failed: failedCount > 0, meetings: meetingLinks };
 }

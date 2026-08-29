@@ -120,12 +120,12 @@ export async function createSheet(tasks, meetings, auth, projectName = "SprintZe
 
   // Meetings sheet
   const meetingsHeaders = [
-    ["Meeting Title", "Date", "Time", "Attendees", "Related Tasks", "Agenda"],
+    ["Meeting Title", "Date", "Time", "Attendees", "Related Tasks", "Agenda", "Meet Link"],
   ];
 
   await sheets.spreadsheets.values.update({
     spreadsheetId,
-    range: "Meetings!A1:F1",
+    range: "Meetings!A1:G1",
     valueInputOption: "RAW",
     requestBody: { values: meetingsHeaders },
   });
@@ -167,6 +167,7 @@ export async function createSheet(tasks, meetings, auth, projectName = "SprintZe
     m.attendees?.map((a) => `${a.name} (${a.email})`).join(", ") || "",
     m.related_task_ids?.join(", ") || "",
     m.agenda || "",
+    m.meetLink || "",
   ]);
 
   await sheets.spreadsheets.values.append({
@@ -196,7 +197,7 @@ export async function createSheet(tasks, meetings, auth, projectName = "SprintZe
               sheetId: meetingsSheetId,
               dimension: "COLUMNS",
               startIndex: 0,
-              endIndex: 6,
+              endIndex: 7,
             },
           },
         },
@@ -205,4 +206,22 @@ export async function createSheet(tasks, meetings, auth, projectName = "SprintZe
   });
 
   return { sheetUrl, spreadsheetId };
+}
+
+export async function updateMeetingsWithLinks(
+  spreadsheetId,
+  meetingsWithLinks,
+  auth,
+) {
+  if (!spreadsheetId || !meetingsWithLinks || !meetingsWithLinks.length) {
+    return;
+  }
+  const sheets = google.sheets({ version: "v4", auth });
+  const rows = meetingsWithLinks.map((m) => [m.meetLink || ""]);
+  await sheets.spreadsheets.values.update({
+    spreadsheetId,
+    range: "Meetings!G2",
+    valueInputOption: "RAW",
+    requestBody: { values: rows },
+  });
 }

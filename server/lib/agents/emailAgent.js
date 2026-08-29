@@ -10,6 +10,7 @@ export class EmailAgent extends BaseAgent {
   async *runAsyncImpl(ctx) {
     const plan = normalizePlan(ctx.session.state.plan);
     const sheetResult = ctx.session.state.sheetResult;
+    const calendarResult = ctx.session.state.calendarResult;
     const auth = ctx.session.state.googleAuth;
     const projectName = ctx.session.state.projectName || "SprintZero Project";
 
@@ -35,10 +36,21 @@ export class EmailAgent extends BaseAgent {
       return;
     }
 
+    // Attach Google Meet links (from the calendar agent) to meetings so
+    // recipients can join directly from the email.
+    const linkByTitle = (calendarResult?.meetings || []).reduce((acc, m) => {
+      if (m.meeting_title && m.meetLink) acc[m.meeting_title] = m.meetLink;
+      return acc;
+    }, {});
+    const meetings = (plan.sync_meetings || []).map((m) => ({
+      ...m,
+      meetLink: m.meetLink || linkByTitle[m.meeting_title] || null,
+    }));
+
     try {
       const result = await sendSummaryEmails(
         plan.tasks,
-        plan.sync_meetings || [],
+        meetings,
         sheetResult.sheetUrl,
         auth,
         projectName,

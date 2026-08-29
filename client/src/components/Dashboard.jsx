@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { apiFetch } from "../lib/api";
 
-export default function Dashboard({ user, onNewProject, onLogout }) {
+export default function Dashboard({ user, onNewProject, onViewProject, onLogout }) {
   const [runs, setRuns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -25,14 +25,16 @@ export default function Dashboard({ user, onNewProject, onLogout }) {
   };
 
   const formatDate = (timestamp) => {
-    if (!timestamp) return "Unknown";
-    try {
-      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-      return formatDistanceToNow(date, { addSuffix: true });
-    } catch {
-      return "Unknown";
-    }
-  };
+  if (!timestamp) return "Unknown";
+  try {
+    const date = timestamp.toDate
+      ? timestamp.toDate()
+      : new Date(timestamp * 1000); // seconds -> ms
+    return formatDistanceToNow(date, { addSuffix: true });
+  } catch {
+    return "Unknown";
+  }
+};
 
   const getStatusBadge = (status) => {
     const styles = {
@@ -156,7 +158,8 @@ export default function Dashboard({ user, onNewProject, onLogout }) {
             {runs.map((run) => (
               <div
                 key={run.id}
-                className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:shadow-md transition-shadow"
+                onClick={() => onViewProject(run.id)}
+                className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:shadow-md hover:border-blue-300 transition-shadow cursor-pointer"
               >
                 <div className="flex items-start justify-between mb-3">
                   <h3 className="font-semibold text-gray-900">
@@ -165,27 +168,27 @@ export default function Dashboard({ user, onNewProject, onLogout }) {
                   {getStatusBadge(run.status)}
                 </div>
                 <div className="text-sm text-gray-500 mb-3">
-                  <p>Created {formatDate(run.createdAt)}</p>
+                  <p>Created {formatDate(run.createdAt._seconds)}</p>
                 </div>
-                <div className="grid grid-cols-3 gap-2 text-center mb-4">
-                  <div className="p-2 bg-gray-50 rounded-lg">
+                <div className="flex gap-2 text-center mb-4">
+                  <div className="flex-1 p-2 bg-gray-50 rounded-lg">
                     <div className="text-lg font-bold text-gray-900">
                       {run.taskCount || 0}
                     </div>
                     <div className="text-xs text-gray-500">Tasks</div>
                   </div>
-                  <div className="p-2 bg-gray-50 rounded-lg">
+                  <div className="flex-1 p-2 bg-gray-50 rounded-lg">
                     <div className="text-lg font-bold text-gray-900">
                       {run.meetingCount || 0}
                     </div>
                     <div className="text-xs text-gray-500">Meetings</div>
                   </div>
-                  <div className="p-2 bg-gray-50 rounded-lg">
+                  {/* <div className="p-2 bg-gray-50 rounded-lg">
                     <div className="text-lg font-bold text-gray-900">
                       {run.emailsSent || 0}
                     </div>
                     <div className="text-xs text-gray-500">Emails</div>
-                  </div>
+                  </div> */}
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {run.sheetUrl && (
@@ -193,6 +196,7 @@ export default function Dashboard({ user, onNewProject, onLogout }) {
                       href={run.sheetUrl}
                       target="_blank"
                       rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
                       className="flex-1 text-center py-2 px-3 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors"
                     >
                       Sheet
@@ -203,11 +207,15 @@ export default function Dashboard({ user, onNewProject, onLogout }) {
                       href={run.calendarLink}
                       target="_blank"
                       rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
                       className="flex-1 text-center py-2 px-3 bg-green-50 text-green-700 rounded-lg text-sm font-medium hover:bg-green-100 transition-colors"
                     >
                       Calendar
                     </a>
                   )}
+                  <span className="flex-1 text-center py-2 px-3 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors">
+                    Details
+                  </span>
                 </div>
               </div>
             ))}

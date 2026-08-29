@@ -5,6 +5,7 @@ import pdfParse from "pdf-parse";
 import { InMemoryRunner } from "@google/adk";
 import { rootPipeline } from "../lib/agents/pipeline.js";
 import { getAuthedClient } from "../lib/googleAuth.js";
+import { updateMeetingsWithLinks } from "../lib/tools/sheets.js";
 import { createRun, updateRun } from "../lib/firestore.js";
 import { requireAuth } from "../middleware/requireAuth.js";
 import { normalizePlan } from "../lib/agents/agentEvents.js";
@@ -195,6 +196,37 @@ const teamMembersText = teamMembers
     const taskCount = plan?.tasks?.length || 0;
     const meetingCount = plan?.sync_meetings?.length || 0;
 
+    // Normalize tasks with a status field (default false/Incomplete) for persistence
+    const persistedTasks = (plan?.tasks || []).map((t) => ({
+      id: t.id,
+      title: t.title,
+      assignee: t.assignee,
+      email: t.email || "",
+      start_date: t.start_date || "",
+      due_date: t.due_date || "",
+      depends_on: t.depends_on || [],
+      description: t.description || "",
+      status: t.status ?? false,
+    }));
+
+    // Attach Google Meet links (from the calendar agent) to their meetings
+    const meetingLinkByTitle = (calendarResult?.meetings || []).reduce(
+      (acc, m) => {
+        if (m.meeting_title && m.meetLink) acc[m.meeting_title] = m.meetLink;
+        return acc;
+      },
+      {},
+    );
+    const persistedMeetings = (plan?.sync_meetings || []).map((m) => ({
+      meeting_title: m.meeting_title,
+      date: m.date || "",
+      time: m.time || "",
+      attendees: m.attendees || [],
+      related_task_ids: m.related_task_ids || [],
+      agenda: m.agenda || "",
+      meetLink: m.meetLink || meetingLinkByTitle[m.meeting_title] || null,
+    }));
+
     await updateRun(runId, {
       status: hasError ? "error" : "complete",
       taskCount,
@@ -203,7 +235,25 @@ const teamMembersText = teamMembers
       calendarLink: calendarResult?.calendarLink || null,
       emailsSent: emailResult?.sentCount || 0,
       emailsFailed: emailResult?.failedRecipients?.length || 0,
+      tasks: persistedTasks,
+      sync_meetings: persistedMeetings,
+      teamMembers: teamMembers || [],
     });
+
+    // Backfill the Meet links into the Meetings sheet (it was created in
+    // parallel with the calendar agent, so it couldn't know the links yet).
+    if (sheetResult?.spreadsheetId) {
+      try {
+        const googleAuth = await getAuthedClient(userId);
+        await updateMeetingsWithLinks(
+          sheetResult.spreadsheetId,
+          persistedMeetings,
+          googleAuth,
+        );
+      } catch (linkErr) {
+        console.error("[process] Failed to backfill meet links into sheet:", linkErr.message);
+      }
+    }
 
     sendEvent({
       step: "complete",
