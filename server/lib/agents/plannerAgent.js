@@ -1,44 +1,59 @@
 import { LlmAgent } from "@google/adk";
-import { z } from "zod";
+import { resultEvent } from "./agentEvents.js";
 
-const PlanSchema = z.object({
-  tasks: z.array(
-    z.object({
-      id: z.string(),
-      title: z.string(),
-      assignee: z.string(),
-      start_date: z.string(),
-      due_date: z.string(),
-      depends_on: z.array(z.string()).optional(),
-      description: z.string().optional(),
-    }),
-  ),
-  sync_meetings: z.array(
-    z.object({
-      meeting_title: z.string(),
-      date: z.string(),
-      time: z.string().optional(),
-      attendees: z.array(z.string()),
-      related_task_ids: z.array(z.string()).optional(),
-      agenda: z.string(),
-    }),
-  ),
-});
+const PLANNER_INSTRUCTION = `You are an expert project planner. Given a project brief and a list of team members with their roles and emails, create a detailed Work Breakdown Structure (WBS) and meeting plan.
+
+OUTPUT FORMAT: You must output a JSON object with exactly this structure:
+{
+  "tasks": [
+    {
+      "id": "task-1",
+      "title": "Task title",
+      "assignee": "Team member name",
+      "email": "assignee@email.com",
+      "start_date": "YYYY-MM-DD",
+      "due_date": "YYYY-MM-DD",
+      "depends_on": ["task-id"],
+      "description": "Detailed description"
+    }
+  ],
+  "sync_meetings": [
+    {
+      "meeting_title": "Meeting title",
+      "date": "YYYY-MM-DD",
+      "time": "HH:MM",
+      "attendees": [
+        { "name": "Member name", "email": "member@email.com" }
+      ],
+      "related_task_ids": ["task-id"],
+      "agenda": "Meeting agenda"
+    }
+  ]
+}
+
+RULES:
+1. Generate 3-8 tasks based on the project scope
+2. Assign each task to the team member whose role BEST fits the task:
+   - Frontend tasks → Frontend Developer / Full Stack Developer
+   - Backend/API tasks → Backend Developer / Full Stack Developer
+   - Design/UI tasks → Designer
+   - Testing/QA tasks → QA Engineer
+   - Infrastructure/DevOps tasks → DevOps Engineer
+   - Data/ML tasks → Data Scientist
+   - Management/coordination → Project Manager
+   - If no exact match, pick the closest role (e.g., Full Stack for backend if no Backend dev)
+3. Set realistic start/due dates in chronological order with dependencies
+4. Include dependencies (depends_on) between related tasks
+5. Generate 2-4 sync meetings (kickoff, review, handoff, etc.)
+6. Meeting attendees must include relevant team members
+7. Use the exact email from the team member data
+8. Dates should start from tomorrow or next week
+9. All fields are required - no empty strings
+10. Output ONLY the JSON, no extra text`;
 
 export const plannerAgent = new LlmAgent({
   name: "planner",
-  model: "gemini-3.5-flash",
-  instruction: `You are a technical project manager. Given a project brief and a
-    list of team members, produce a work breakdown structure (6-12 tasks, each
-    assigned to a specific named team member, with realistic start/due dates)
-    and 2-3 sync meetings for tasks that are true dependencies of one another
-    (one task's output blocks another's start). Only include attendees actually
-    involved in the dependent tasks. For each meeting write a 3-bullet agenda:
-    what should be done by that date, what needs to be decided or handed off.
-    Return exactly one JSON object with top-level keys "tasks" and
-    "sync_meetings". The tasks array must contain 6-12 tasks and the
-    sync_meetings array must contain 2-3 meetings. Do not return an array,
-    "project_name", or any prose.`,
+  model: "gemini-2.0-flash",
+  instruction: PLANNER_INSTRUCTION,
   outputKey: "plan",
-  outputSchema: PlanSchema,
 });

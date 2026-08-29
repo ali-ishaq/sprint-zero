@@ -37,6 +37,7 @@ export class EmailAgent extends BaseAgent {
     try {
       const result = await sendSummaryEmails(
         plan.tasks,
+        plan.sync_meetings || [],
         sheetResult.sheetUrl,
         auth,
       );

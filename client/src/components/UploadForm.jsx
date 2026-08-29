@@ -1,9 +1,23 @@
 import { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 
+const ROLES = [
+  'Project Manager',
+  'Frontend Developer',
+  'Backend Developer',
+  'Full Stack Developer',
+  'Designer',
+  'QA Engineer',
+  'DevOps Engineer',
+  'Data Scientist',
+  'Other',
+];
+
+const initialTeamMember = { name: '', role: '', email: '' };
+
 export default function UploadForm({ onSubmit, onBack }) {
   const [projectName, setProjectName] = useState('');
-  const [teamList, setTeamList] = useState('');
+  const [teamMembers, setTeamMembers] = useState([initialTeamMember]);
   const [pdfFile, setPdfFile] = useState(null);
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -24,10 +38,40 @@ export default function UploadForm({ onSubmit, onBack }) {
     maxFiles: 1
   });
 
+  const addTeamMember = () => {
+    setTeamMembers([...teamMembers, initialTeamMember]);
+  };
+
+  const removeTeamMember = (index) => {
+    if (teamMembers.length <= 1) return;
+    setTeamMembers(teamMembers.filter((_, i) => i !== index));
+  };
+
+  const updateTeamMember = (index, field, value) => {
+    setTeamMembers(teamMembers.map((member, i) =>
+      i === index ? { ...member, [field]: value } : member
+    ));
+  };
+
   const validate = () => {
     const newErrors = {};
     if (!projectName.trim()) newErrors.projectName = 'Project name is required';
-    if (!teamList.trim()) newErrors.teamList = 'Team list is required';
+    if (teamMembers.length === 0) {
+      newErrors.teamMembers = 'At least one team member is required';
+    } else {
+      const invalidMembers = teamMembers.some(
+        m => !m.name.trim() || !m.role.trim() || !m.email.trim()
+      );
+      if (invalidMembers) {
+        newErrors.teamMembers = 'All team members must have name, role, and email';
+      }
+      const invalidEmails = teamMembers.some(
+        m => m.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(m.email.trim())
+      );
+      if (invalidEmails) {
+        newErrors.teamMembers = 'All emails must be valid';
+      }
+    }
     if (!pdfFile) newErrors.pdf = 'Project brief PDF is required';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -41,9 +85,11 @@ export default function UploadForm({ onSubmit, onBack }) {
     const formData = new FormData();
     formData.append('brief', pdfFile);
     formData.append('projectName', projectName);
-    formData.append('teamList', teamList);
+    formData.append('teamMembers', JSON.stringify(teamMembers));
     onSubmit(formData);
   };
+
+  const teamMembersJson = JSON.stringify(teamMembers);
 
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4">
@@ -78,21 +124,71 @@ export default function UploadForm({ onSubmit, onBack }) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Team Members (one per line)</label>
-            <textarea
-              value={teamList}
-              onChange={(e) => setTeamList(e.target.value)}
-              rows={5}
-              className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm ${
-                errors.teamList ? 'border-red-300' : 'border-gray-300'
-              }`}
-              placeholder="Alice Chen
-Bob Martinez
-Carol Kim
-David Park"
-            />
-            {errors.teamList && <p className="mt-1 text-sm text-red-600">{errors.teamList}</p>}
-            <p className="mt-1 text-xs text-gray-500">Each name will be assigned tasks and receive emails</p>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-medium text-gray-700">Team Members</label>
+              <button
+                type="button"
+                onClick={addTeamMember}
+                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+              >
+                + Add Member
+              </button>
+            </div>
+            <div className="space-y-3">
+              {teamMembers.map((member, index) => (
+                <div key={index} className="border border-gray-200 rounded-lg p-4 space-y-3 bg-gray-50">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-700">Member {index + 1}</span>
+                    {teamMembers.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeTeamMember(index)}
+                        className="text-red-500 hover:text-red-700 text-sm"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Name</label>
+                      <input
+                        type="text"
+                        value={member.name}
+                        onChange={(e) => updateTeamMember(index, 'name', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                        placeholder="Alice Chen"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Role</label>
+                      <select
+                        value={member.role}
+                        onChange={(e) => updateTeamMember(index, 'role', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                      >
+                        <option value="">Select role</option>
+                        {ROLES.map(role => (
+                          <option key={role} value={role}>{role}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Email</label>
+                      <input
+                        type="email"
+                        value={member.email}
+                        onChange={(e) => updateTeamMember(index, 'email', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                        placeholder="alice@example.com"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {errors.teamMembers && <p className="mt-1 text-sm text-red-600">{errors.teamMembers}</p>}
+            <p className="mt-1 text-xs text-gray-500">Each member will be assigned tasks based on their role and receive emails</p>
           </div>
 
           <div>

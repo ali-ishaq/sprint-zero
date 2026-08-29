@@ -13,11 +13,25 @@ function nextDate(dateStr) {
   return date.toISOString().slice(0, 10);
 }
 
-function formatAttendees(names) {
-  return names.map((name) => ({
-    email: name.toLowerCase().replace(/\s+/g, ".") + "@example.com",
-    displayName: name,
-  }));
+function formatAttendees(attendees) {
+  return attendees
+    .map((entry) => {
+      if (typeof entry === "string") {
+        return {
+          email: entry.toLowerCase().replace(/\s+/g, ".") + "@gmail.com",
+          displayName: entry,
+        };
+      }
+
+      if (entry && typeof entry === "object") {
+        const name = entry.name || entry.displayName || entry.email || "Unknown";
+        const email = entry.email || name.toLowerCase().replace(/\s+/g, ".") + "@gmail.com";
+        return { email, displayName: name };
+      }
+
+      return null;
+    })
+    .filter(Boolean);
 }
 
 export async function createCalendarEvents(tasks, meetings, auth) {
@@ -28,8 +42,23 @@ export async function createCalendarEvents(tasks, meetings, auth) {
   let failedCount = 0;
 
   for (const task of tasks) {
+    if (!task || !task.title || !task.due_date) {
+      console.warn(
+        "Skipping invalid task entry for calendar generation:",
+        task,
+      );
+      continue;
+    }
+
     try {
-      const start = parseDateTime(task.due_date);
+      const start = parseDateTime(task.start_date || task.due_date);
+      if (!start) {
+        console.warn(
+          `Skipping task ${task.id || task.title}: missing valid date`,
+        );
+        continue;
+      }
+
       const end = { ...start };
       if (start.dateTime) {
         const endTime = new Date(start.dateTime);
@@ -40,6 +69,8 @@ export async function createCalendarEvents(tasks, meetings, auth) {
         end.date = nextDate(task.due_date);
       }
 
+      const assigneeEmail = task.email || task.assignee_email || task.assignee.toLowerCase().replace(/\s+/g, ".") + "@example.com";
+
       await calendar.events.insert({
         calendarId,
         requestBody: {
@@ -47,14 +78,7 @@ export async function createCalendarEvents(tasks, meetings, auth) {
           description: `Assignee: ${task.assignee}\n${task.description || ""}`,
           start,
           end,
-          attendees: [
-            {
-              email:
-                task.assignee.toLowerCase().replace(/\s+/g, ".") +
-                "@example.com",
-              displayName: task.assignee,
-            },
-          ],
+          attendees: [{ email: assigneeEmail, displayName: task.assignee }],
         },
       });
       createdCount++;
@@ -65,8 +89,23 @@ export async function createCalendarEvents(tasks, meetings, auth) {
   }
 
   for (const meeting of meetings) {
+    if (!meeting || !meeting.date || !meeting.meeting_title) {
+      console.warn(
+        "Skipping invalid meeting entry for calendar generation:",
+        meeting,
+      );
+      continue;
+    }
+
     try {
       const start = parseDateTime(meeting.date, meeting.time);
+      if (!start) {
+        console.warn(
+          `Skipping meeting ${meeting.meeting_title}: missing valid date`,
+        );
+        continue;
+      }
+
       const end = { ...start };
       if (start.dateTime) {
         const endTime = new Date(start.dateTime);

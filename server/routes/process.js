@@ -23,9 +23,24 @@ router.post("/", requireAuth, upload.single("brief"), async (req, res) => {
     return res.status(400).json({ error: "No PDF file uploaded" });
   }
 
-  const teamList = req.body.teamList;
-  if (!teamList) {
-    return res.status(400).json({ error: "Team list is required" });
+  let teamMembers;
+  try {
+    teamMembers = JSON.parse(req.body.teamMembers || "[]");
+  } catch {
+    return res.status(400).json({ error: "Invalid team members format" });
+  }
+
+  if (!teamMembers || teamMembers.length === 0) {
+    return res.status(400).json({ error: "At least one team member is required" });
+  }
+
+  for (const member of teamMembers) {
+    if (!member.name?.trim() || !member.role?.trim() || !member.email?.trim()) {
+      return res.status(400).json({ error: "All team members must have name, role, and email" });
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(member.email.trim())) {
+      return res.status(400).json({ error: "All emails must be valid" });
+    }
   }
 
   let pdfText;
@@ -77,17 +92,21 @@ router.post("/", requireAuth, upload.single("brief"), async (req, res) => {
     const sessionId = `run-${runId}`;
     const initialState = {
       pdfContent: pdfText,
-      teamList: teamList,
+      teamMembers,
       googleAuth,
       projectName,
     };
 
-    const userMessage = `Project Brief:\n${pdfText}\n\nTeam Members:\n${teamList}\n\nProject Name: ${projectName}`;
+    const teamMembersText = teamMembers
+      .map((m) => `${m.name} (${m.role}) - ${m.email}`)
+      .join("\n");
+    const userMessage = `Project Brief:\n${pdfText}\n\nTeam Members:\n${teamMembersText}\n\nProject Name: ${projectName}`;
 
     const runner = new InMemoryRunner({
       agent: rootPipeline,
       appName: "sprintzero",
     });
+    
     await runner.sessionService.createSession({
       appName: "sprintzero",
       userId,
@@ -136,6 +155,7 @@ router.post("/", requireAuth, upload.single("brief"), async (req, res) => {
       }
 
       if (step === "planner" && eventData) {
+        console.log(`[planner][run ${runId}]`, JSON.stringify(parsedData, null, 2));
         finalState.plan = parsedData;
       } else if (step === "sheets" && eventData) {
         finalState.sheetResult = parsedData;

@@ -23,7 +23,7 @@ export class SheetsAgent extends BaseAgent {
     }
 
     try {
-      const result = await createSheet(plan.tasks, auth);
+      const result = await createSheet(plan.tasks, plan.sync_meetings || [], auth);
       yield resultEvent(ctx, this.name, "sheetResult", result);
     } catch (err) {
       yield resultEvent(
