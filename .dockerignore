@@ -1,0 +1,9 @@
+@"
+**/node_modules
+**/dist
+**/public
+.git
+**/.env
+**/.env.*
+!**/.env.example
+"@ | Out-File -Encoding utf8 .dockerignore
