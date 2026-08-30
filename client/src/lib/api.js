@@ -1,6 +1,4 @@
-const configuredBase = (import.meta.env.VITE_API_BASE_URL || "/api").trim();
-const API_BASE =
-  configuredBase === "" ? "/api" : configuredBase.replace(/\/+$/, "");
+const API_BASE = "/api";
 
 function normalizePath(path) {
   return path.startsWith("/") ? path : `/${path}`;

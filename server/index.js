@@ -1,7 +1,6 @@
 import "dotenv/config";
 import express from "express";
 import cookieSession from "cookie-session";
-import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
 import { initFirestore } from "./lib/firestore.js";
@@ -24,18 +23,45 @@ const secureCookies = crossSiteCookies
   : process.env.NODE_ENV === "production" ||
     process.env.COOKIE_SECURE === "true";
 
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-        return;
-      }
-      callback(new Error("CORS blocked for this origin"));
-    },
-    credentials: true,
-  }),
-);
+app.use((req, res, next) => {
+  const origin = req.get("Origin");
+  // Requests from a page served by this very server (same origin) are not
+  // cross-origin and need no CORS grant. Browsers still send an `Origin`
+  // header for credentialed fetches even on same-origin calls, so compare
+  // against the server's own host rather than relying on the allowlist.
+  const sameOrigin =
+    origin && origin === req.protocol + "://" + req.get("host");
+  const allowed =
+    !origin || sameOrigin || allowedOrigins.includes(origin);
+
+  if (allowed && origin) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Vary", "Origin");
+  }
+
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    "GET,POST,PATCH,PUT,DELETE,OPTIONS",
+  );
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "Content-Type,Authorization",
+  );
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(204);
+  }
+
+  if (!allowed) {
+    console.error(
+      `CORS blocked origin: "${origin}" (allowlist: ${allowedOrigins.join(", ") || "<none>"})`,
+    );
+    return next(new Error("CORS blocked for this origin"));
+  }
+
+  next();
+});
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

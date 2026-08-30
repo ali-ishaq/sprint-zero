@@ -10,6 +10,19 @@ import { encrypt } from "../lib/crypto.js";
 
 const router = Router();
 
+// The client (Vite dev server) runs on a different origin than the API in
+// development. Build redirect URLs against the client origin so the browser
+// lands back on the SPA rather than the API server. In production the client
+// is served from the same origin, so CLIENT_ORIGIN can be left unset and we
+// fall back to relative paths which resolve to the same host.
+function clientRedirect(path) {
+  const origin = process.env.CLIENT_ORIGIN;
+  if (origin) {
+    return `${origin.replace(/\/+$/, "")}${path.startsWith("/") ? path : `/${path}`}`;
+  }
+  return path;
+}
+
 router.get("/login", (req, res) => {
   const promptConsent = req.query.prompt !== "false";
   const url = getAuthUrl(promptConsent);
@@ -20,11 +33,11 @@ router.get("/callback", async (req, res) => {
   const { code, error } = req.query;
 
   if (error) {
-    return res.redirect("/?error=access_denied");
+    return res.redirect(clientRedirect("/?error=access_denied"));
   }
 
   if (!code) {
-    return res.redirect("/?error=no_code");
+    return res.redirect(clientRedirect("/?error=no_code"));
   }
 
   try {
@@ -32,7 +45,9 @@ router.get("/callback", async (req, res) => {
 
     if (!tokens.refresh_token) {
       return res.redirect(
-        "/?error=no_refresh_token&message=Please re-authenticate with consent",
+        clientRedirect(
+          "/?error=no_refresh_token&message=Please re-authenticate with consent",
+        ),
       );
     }
 
@@ -48,13 +63,15 @@ router.get("/callback", async (req, res) => {
 
     req.session.uid = uid;
 
-    res.redirect("/dashboard");
+    res.redirect(clientRedirect("/dashboard"));
   } catch (err) {
     console.error("Auth callback error:", err);
     if (err.message.includes("invalid_grant")) {
-      return res.redirect("/?error=invalid_grant&message=Please sign in again");
+      return res.redirect(
+        clientRedirect("/?error=invalid_grant&message=Please sign in again"),
+      );
     }
-    res.redirect("/?error=callback_failed");
+    res.redirect(clientRedirect("/?error=callback_failed"));
   }
 });
 
