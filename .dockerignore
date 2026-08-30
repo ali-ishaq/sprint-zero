@@ -1,4 +1,3 @@
-@"
 **/node_modules
 **/dist
 **/public
@@ -6,4 +5,4 @@
 **/.env
 **/.env.*
 !**/.env.example
-"@ | Out-File -Encoding utf8 .dockerignore
+**/keys
