@@ -132,8 +132,9 @@ sprintzero/
 │   │       ├── agentEvents.js
 │   │       └── pipeline.js
 │   ├── package.json
-│   ├── Dockerfile
 │   └── .env.example
+├── Dockerfile
+├── .dockerignore
 ├── .github/workflows/deploy.yml
 ├── package.json
 └── README.md
@@ -143,10 +144,15 @@ sprintzero/
 
 ### Docker image
 
-A multi-stage-less single-stage Dockerfile at `server/Dockerfile` builds the client, copies it into `server/public` (monolith), and runs the Node server on port 8080. Build it from the **repo root** (the Dockerfile's paths assume the root as context):
+A multi-stage `Dockerfile` at the **repo root** (with `.dockerignore` to keep `node_modules`, `.env`, and `keys/` out of the image):
+
+- **Stage 1** (`client-build`): installs client deps and runs `vite build`.
+- **Stage 2**: installs only server production deps, copies the server source, and copies the built `client/dist` into `server/public` (producing the monolith), then runs the Node server on port 8080.
+
+Because the Dockerfile is at the root, the build context is the repo root:
 
 ```bash
-docker build -f server/Dockerfile -t gcr.io/PROJECT_ID/sprintzero .
+docker build -t gcr.io/PROJECT_ID/sprintzero .
 ```
 
 ### Cloud Run (CI)
