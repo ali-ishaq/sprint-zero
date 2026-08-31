@@ -37,8 +37,7 @@ jobs:
 
       - name: Build image
         run: |
-          docker build -f server/Dockerfile \
-            -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/sprintzero/app:${{ github.sha }} .
+          docker build -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/sprintzero/app:${{ github.sha }} .
 
       - name: Push image
         run: |
