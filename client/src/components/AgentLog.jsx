@@ -28,7 +28,9 @@ const STAGES = [
 export default function AgentLog({ events, onComplete, onBack }) {
   const logEndRef = useRef(null);
   const [lastEvent, setLastEvent] = useState(null);
-  const hasFailed = lastEvent?.status === "error";
+
+  const pipelineComplete = lastEvent?.step === "complete" && lastEvent?.status === "complete";
+  const pipelineFailed = lastEvent?.step === "complete" && lastEvent?.status === "error";
 
   useEffect(() => {
     if (events.length > 0) {
@@ -36,12 +38,6 @@ export default function AgentLog({ events, onComplete, onBack }) {
       logEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
   }, [events]);
-
-  useEffect(() => {
-    if (lastEvent?.step === "complete" || lastEvent?.step === "error") {
-      onComplete(lastEvent);
-    }
-  }, [lastEvent, onComplete]);
 
   const formatData = (data) => {
     if (!data) return null;
@@ -179,9 +175,29 @@ export default function AgentLog({ events, onComplete, onBack }) {
           </div>
         </div>
 
-        {hasFailed ? (
+        {/* Bottom action area */}
+        {pipelineComplete ? (
+          <div className="flex items-center justify-between gap-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3">
+            <div>
+              <p className="text-sm font-medium text-emerald-800">
+                Sprint plan generated successfully.
+              </p>
+              <p className="text-xs text-emerald-600 mt-0.5">
+                View tasks, meetings, and team assignments.
+              </p>
+            </div>
+            <Button
+              onClick={() => onComplete(lastEvent)}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+            >
+              View Results
+            </Button>
+          </div>
+        ) : pipelineFailed ? (
           <div className="flex items-center justify-between gap-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
-            <p className="text-sm text-red-700">Processing failed. Please try again.</p>
+            <p className="text-sm text-red-700">
+              Processing failed. Please try again.
+            </p>
             <Button variant="secondary" onClick={onBack}>
               Back to Dashboard
             </Button>

@@ -22,16 +22,16 @@ const ROLES = [
   "Other",
 ];
 
-// const initialTeamMember = { name: '', role: '', email: '' };
-const initialTeamMember = [
-  { name: "Ali", role: "Full Stack Developer", email: "aliishaq.ku@gmail.com" },
-  { name: "Hadi", role: "Project Manager", email: "aliishaq3578@gmail.com" },
-  { name: "Ayan", role: "Frontend Developer", email: "aliishaq3578@gmail.com" },
-];
+const initialTeamMember = { name: '', role: '', email: '' };
+// const initialTeamMember = [
+//   { name: "Ali", role: "Full Stack Developer", email: "aliishaq.ku@gmail.com" },
+//   { name: "Hadi", role: "Project Manager", email: "aliishaq3578@gmail.com" },
+//   { name: "Ayan", role: "Frontend Developer", email: "aliishaq3578@gmail.com" },
+// ];
 
 export default function UploadForm({ onSubmit, onBack }) {
   const [projectName, setProjectName] = useState("StudyBuddyAI");
-  const [teamMembers, setTeamMembers] = useState(initialTeamMember);
+  const [teamMembers, setTeamMembers] = useState([initialTeamMember]);
   const [pdfFile, setPdfFile] = useState(null);
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);

@@ -96,8 +96,8 @@ function NavLink({ href, children }) {
 
 function Navbar({ onSignIn }) {
   return (
-    <div className="sticky top-0 z-50 px-4 pt-4 animate-fade-up">
-      <div className="max-w-6xl mx-auto flex items-center justify-between gap-4 bg-white/90 backdrop-blur-md rounded-pill shadow-card border border-line px-5 py-3">
+    <div className=" sticky top-0 z-50 px-4 pt-4 animate-fade-up">
+      <div className="  max-w-6xl mx-auto flex items-center justify-between gap-4 bg-white/90 backdrop-blur-md rounded-pill shadow-card border border-line px-5 py-3">
         <div className="flex items-center gap-2.5 shrink-0">
           <LogoMark className="w-8 h-8" />
           <Wordmark />
@@ -105,7 +105,7 @@ function Navbar({ onSignIn }) {
 
         <nav className="hidden md:flex items-center gap-8">
           <NavLink href="#why">Product</NavLink>
-          <NavLink href="#pricing">Pricing</NavLink>
+          {/* <NavLink href="#pricing">Pricing</NavLink> */}
           <NavLink href="#how">How it Works</NavLink>
           <NavLink href="#contact">Contact</NavLink>
         </nav>
@@ -118,7 +118,7 @@ function Navbar({ onSignIn }) {
 
 function Hero({ onSignIn }) {
   return (
-    <div className="bg-[#F1F0FC] text-center relative overflow-hidden">
+    <div className="bg-[#F1F0FC]  text-center relative overflow-hidden">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0"
@@ -128,12 +128,12 @@ function Hero({ onSignIn }) {
         }}
       />
       <div className="max-w-4xl mx-auto px-6 pt-16 pb-10 text-center relative">
-        <div className="animate-fade-up" style={{ animationDelay: "80ms" }}>
+        {/* <div className="animate-fade-up" style={{ animationDelay: "80ms" }}>
           <Badge className="bg-white text-brand">
             <LightningIcon className="w-3.5 h-3.5" strokeWidth={2} />
             Built with Google Gemini
           </Badge>
-        </div>
+        </div> */}
 
         <h1
           className="font-display text-5xl sm:text-6xl font-extrabold text-gray-900 mt-6 leading-tight animate-fade-up"
@@ -395,30 +395,30 @@ function Features() {
   );
 }
 
-function Pricing({ onSignIn }) {
-  return (
-    <section id="pricing" className="py-20 bg-shell-content">
-      <div className="max-w-xl mx-auto px-6 text-center">
-        <Reveal>
-          <h2 className="font-display text-3xl sm:text-4xl font-bold text-gray-900">
-            Simple, transparent access
-          </h2>
-          <Card className="mt-10 p-10 text-center transition-all duration-300 hover:-translate-y-1 hover:shadow-card">
-            <h3 className="font-display font-bold text-gray-900 text-xl">Free during early access</h3>
-            <p className="text-gray-500 mt-2 text-sm">
-              Experience the full power of automated sprint planning while we refine the product.
-            </p>
-            <div className="mt-6 mb-8">
-              <span className="font-display text-6xl font-bold text-gray-900">$0</span>
-              <span className="text-xl text-gray-400">/mo</span>
-            </div>
-            <SignInGoogleButton onClick={onSignIn} className="w-full" />
-          </Card>
-        </Reveal>
-      </div>
-    </section>
-  );
-}
+// function Pricing({ onSignIn }) {
+//   return (
+//     <section id="pricing" className="py-20 bg-shell-content">
+//       <div className="max-w-xl mx-auto px-6 text-center">
+//         <Reveal>
+//           <h2 className="font-display text-3xl sm:text-4xl font-bold text-gray-900">
+//             Simple, transparent access
+//           </h2>
+//           <Card className="mt-10 p-10 text-center transition-all duration-300 hover:-translate-y-1 hover:shadow-card">
+//             <h3 className="font-display font-bold text-gray-900 text-xl">Free during early access</h3>
+//             <p className="text-gray-500 mt-2 text-sm">
+//               Experience the full power of automated sprint planning while we refine the product.
+//             </p>
+//             <div className="mt-6 mb-8">
+//               <span className="font-display text-6xl font-bold text-gray-900">$0</span>
+//               <span className="text-xl text-gray-400">/mo</span>
+//             </div>
+//             <SignInGoogleButton onClick={onSignIn} className="w-full" />
+//           </Card>
+//         </Reveal>
+//       </div>
+//     </section>
+//   );
+// }
 
 function StatsRow() {
   const stats = [
@@ -459,17 +459,15 @@ function CtaBand({ onSignIn }) {
           <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
             <Button
               onClick={onSignIn}
-              className="rounded-pill bg-white text-black hover:bg-gray-50 px-6 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/10"
+              className="rounded-pill bg-white hover:bg-gray-50 px-6 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/10"
             >
-              <GoogleIcon className="w-5 h-5" />
+              <GoogleIcon className="w-5 h-5 " />
+              <p className="ml-2 text-sm font-medium text-gray-900">
+
               Sign in with Google
-            </Button>
-            <Button
-              onClick={onSignIn}
-              className="rounded-pill border border-white text-white bg-transparent hover:bg-brand-dark px-6 transition-all duration-300 hover:-translate-y-0.5"
-            >
-              Request Custom Demo
-            </Button>
+              </p>
+
+            </Button>          
           </div>
         </div>
       </Reveal>
@@ -515,7 +513,7 @@ function Footer() {
         <div className="h-px bg-line my-8" />
 
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-gray-500">
-          <p>© 2024 SprintZero. All rights reserved.</p>
+          <p>© 2026 SprintZero</p>
           <div className="flex items-center gap-4">
             <a href="#" onClick={(e) => e.preventDefault()} className="hover:text-gray-900 transition-colors">Privacy Policy</a>
             <span className="text-gray-300">·</span>
@@ -529,13 +527,13 @@ function Footer() {
 
 export default function LandingPage({ onSignIn }) {
   return (
-    <div className="min-h-screen bg-white text-gray-900 font-sans overflow-x-clip">
+    <div className="min-h-screen bg-[#F1F0FC] text-gray-900 font-sans overflow-x-clip">
       <Navbar onSignIn={onSignIn} />
       <Hero onSignIn={onSignIn} />
       <WhySection />
       <Spotlight />
       <Features />
-      <Pricing onSignIn={onSignIn} />
+      {/* <Pricing onSignIn={onSignIn} /> */}
       <StatsRow />
       <CtaBand onSignIn={onSignIn} />
       <Footer />
