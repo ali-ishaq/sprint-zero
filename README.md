@@ -10,7 +10,7 @@ The core of SprintZero is an ADK agent pipeline built with `SequentialAgent` and
 
 ```
 SequentialAgent (sprintzero_pipeline)
-├── LlmAgent (planner) - Gemini 2.5 Flash
+├── LlmAgent (planner) - Gemini 3.5 Flash
 │   └── Reads PDF + team list → produces WBS + 2-3 sync meetings with AI-written agendas
 ├── ParallelAgent (sheets_and_calendar)
 │   ├── SheetsAgent (deterministic) - Creates Google Sheet with tasks
