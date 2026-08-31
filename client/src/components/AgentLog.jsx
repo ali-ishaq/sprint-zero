@@ -1,24 +1,29 @@
 import { useEffect, useRef, useState } from "react";
+import Shell from "./ui/Shell";
+import Card from "./ui/Card";
+import StepperNode from "./ui/StepperNode";
+import LogLine from "./ui/LogLine";
+import Button from "./ui/Button";
+import {
+  ClipboardIcon,
+  SheetIcon,
+  MailIcon,
+  FlagIcon,
+  InfoIcon,
+  TerminalIcon,
+} from "./ui/Icons";
 
-const stepColors = {
-  planner: "bg-purple-100 text-purple-800 border-purple-200",
-  sheets: "bg-blue-100 text-blue-800 border-blue-200",
-  calendar: "bg-green-100 text-green-800 border-green-200",
-  email: "bg-orange-100 text-orange-800 border-orange-200",
-  sheets_and_calendar: "bg-indigo-100 text-indigo-800 border-indigo-200",
-  complete: "bg-gray-100 text-gray-800 border-gray-200",
-  error: "bg-red-100 text-red-800 border-red-200",
-};
-
-const stepLabels = {
-  planner: "Planner Agent",
-  sheets: "Sheets Agent",
-  calendar: "Calendar Agent",
-  email: "Email Agent",
-  sheets_and_calendar: "Parallel: Sheets + Calendar",
-  complete: "Complete",
-  error: "Error",
-};
+const STAGES = [
+  { step: "planner", label: "Planner", Icon: ClipboardIcon, isParallel: false },
+  {
+    step: "sheets_and_calendar",
+    label: "Sheets & Calendar",
+    Icon: SheetIcon,
+    isParallel: true,
+  },
+  { step: "email", label: "Email Notifications", Icon: MailIcon, isParallel: false },
+  { step: "complete", label: "Finalize", Icon: FlagIcon, isParallel: false },
+];
 
 export default function AgentLog({ events, onComplete, onBack }) {
   const logEndRef = useRef(null);
@@ -48,160 +53,146 @@ export default function AgentLog({ events, onComplete, onBack }) {
     }
   };
 
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case "done":
-        return (
-          <svg
-            className="w-4 h-4 text-green-500"
-            fill="currentColor"
-            viewBox="0 0 20 20"
-          >
-            <path
-              fillRule="evenodd"
-              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-              clipRule="evenodd"
-            />
-          </svg>
-        );
-      case "error":
-        return (
-          <svg
-            className="w-4 h-4 text-red-500"
-            fill="currentColor"
-            viewBox="0 0 20 20"
-          >
-            <path
-              fillRule="evenodd"
-              d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-              clipRule="evenodd"
-            />
-          </svg>
-        );
-      default:
-        return (
-          <svg
-            className="w-4 h-4 text-blue-500 animate-spin"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <circle
-              className="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              strokeWidth="4"
-            />
-            <path
-              className="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-            />
-          </svg>
-        );
+  const hasStepDone = (eventStep) =>
+    events.some((e) => e.step === eventStep && e.status === "done");
+
+  const stageDone = (stageIndex) => {
+    const step = STAGES[stageIndex].step;
+    if (step === "sheets_and_calendar") {
+      return hasStepDone("sheets") && hasStepDone("calendar");
     }
+    if (step === "complete") {
+      return events.some((e) => e.step === "complete");
+    }
+    return hasStepDone(step);
   };
 
+  const stageStarted = (stageIndex) => {
+    const step = STAGES[stageIndex].step;
+    if (step === "sheets_and_calendar") {
+      return events.some(
+        (e) => ["sheets_and_calendar", "sheets", "calendar"].includes(e.step)
+      );
+    }
+    if (step === "complete") {
+      return events.some((e) => e.step === "complete");
+    }
+    return events.some((e) => e.step === step);
+  };
+
+  const getStageState = (stageIndex) => {
+    if (stageDone(stageIndex)) return "completed";
+    if (stageStarted(stageIndex)) return "active";
+    return "pending";
+  };
+
+  const progressCount = STAGES.reduce(
+    (acc, _, i) => acc + (getStageState(i) === "completed" ? 1 : 0),
+    0
+  );
+
+  const logLines = [];
+  events.forEach((ev, ei) => {
+    const isLastEvent = ei === events.length - 1;
+    const logs =
+      ev.logs && ev.logs.length
+        ? ev.logs
+        : [
+            {
+              variant: ev.status === "error" ? "warning" : "info",
+              tag: `[${String(ev.step).toUpperCase()}]`,
+              message: typeof ev.data === "string" ? ev.data : formatData(ev.data) || "",
+            },
+          ];
+    logs.forEach((l) => logLines.push({ ...l, dimmed: !isLastEvent }));
+  });
+
   return (
-    <div className="flex-1 overflow-hidden bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col">
-      <div className="p-4 border-b border-gray-200 bg-gray-50">
-        <h2 className="text-lg font-semibold text-gray-900">Agent Log</h2>
-        <p className="text-sm text-gray-500 mt-1">
-          Live streaming from ADK pipeline
-        </p>
-      </div>
-
-      <div
-        className="flex-1 overflow-y-auto scrollbar-thin p-4 space-y-3"
-        role="log"
-        aria-live="polite"
-      >
-        {events.length === 0 && (
-          <div className="text-center text-gray-500 py-8">
-            <svg
-              className="mx-auto h-12 w-12 text-gray-300"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-              />
-            </svg>
-            <p className="mt-2">Waiting for pipeline to start...</p>
-          </div>
-        )}
-
-        {events.map((event, index) => (
-          <div key={`${event.step}-${index}`} className="animate-slide-in">
-            <div
-              className={`flex items-start gap-3 p-3 rounded-lg border ${stepColors[event.step] || "bg-gray-100 text-gray-800 border-gray-200"}`}
-            >
-              <div className="flex-shrink-0 mt-0.5">
-                {getStatusIcon(event.status)}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium capitalize">
-                    {stepLabels[event.step] || event.step}
-                  </span>
-                  <span
-                    className={`px-2 py-0.5 text-xs font-medium rounded-full ${
-                      event.status === "done"
-                        ? "bg-green-100 text-green-700"
-                        : event.status === "error"
-                          ? "bg-red-100 text-red-700"
-                          : "bg-yellow-100 text-yellow-700"
-                    }`}
-                  >
-                    {event.status}
-                  </span>
-                </div>
-                {event.data && (
-                  <pre className="mt-2 text-xs bg-gray-50 p-3 rounded overflow-x-auto text-gray-700 max-h-40 overflow-y-auto">
-                    {formatData(event.data)}
-                  </pre>
-                )}
-              </div>
-            </div>
-          </div>
-        ))}
-
-        <div ref={logEndRef} />
-      </div>
-
-      <div className="p-4 border-t border-gray-200 bg-gray-50 flex items-center justify-between gap-4">
-        <div
-          className={`flex items-center gap-2 text-sm ${hasFailed ? "text-red-600" : "text-gray-500"}`}
-        >
-          <span
-            className={`relative flex h-2 w-2 ${hasFailed ? "bg-red-500 rounded-full" : ""}`}
-          >
-            {!hasFailed && (
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-            )}
-            <span
-              className={`relative inline-flex rounded-full h-2 w-2 ${hasFailed ? "bg-red-500" : "bg-blue-500"}`}
-            ></span>
-          </span>
-          {hasFailed
-            ? "Processing failed"
-            : "Streaming events from ADK runner..."}
+    <Shell
+      active="new-project"
+      onNavigate={(id) => {
+        if (id === "dashboard") onBack();
+      }}
+    >
+      <div className="max-w-3xl mx-auto">
+        <div className="text-center mb-8">
+          <h1 className="font-display text-2xl font-bold text-gray-900">
+            Generating your Sprint Plan...
+          </h1>
+          <p className="text-gray-500 mt-1 text-sm">
+            Our agents are analyzing constraints and building your timeline.
+          </p>
         </div>
-        {hasFailed && (
-          <button
-            type="button"
-            onClick={onBack}
-            className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+
+        <Card className="p-8 mb-6">
+          <div className="relative flex items-start justify-between">
+            <div className="absolute top-5 left-[6%] right-[6%] h-0.5 bg-gray-200" />
+            <div
+              className="absolute top-5 left-[6%] h-0.5 bg-emerald-500 transition-all duration-500"
+              style={{
+                width: `calc(${(progressCount / (STAGES.length - 1)) * 88}% )`,
+              }}
+            />
+            {STAGES.map(({ label, Icon, isParallel }, i) => {
+              const state = getStageState(i);
+              return (
+                <div key={label} className="relative z-10">
+                  <StepperNode
+                    state={state}
+                    label={label}
+                    isParallel={isParallel && state === "active"}
+                    icon={<Icon className="w-5 h-5" />}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+
+        <div className="rounded-card overflow-hidden border border-gray-800 bg-[#0B1020] text-gray-100 shadow-card mb-4">
+          <div className="flex items-center gap-2 px-5 py-3 border-b border-gray-800">
+            <TerminalIcon className="w-4 h-4 text-gray-400" />
+            <span className="text-xs font-semibold uppercase tracking-wider text-gray-300">
+              Agent Log
+            </span>
+          </div>
+          <div
+            className="px-5 py-4 space-y-1.5 max-h-80 overflow-y-auto scrollbar-thin"
+            role="log"
+            aria-live="polite"
           >
-            Back to Dashboard
-          </button>
+            {logLines.length === 0 && (
+              <p className="text-gray-500 text-sm">
+                Waiting for pipeline to start...
+              </p>
+            )}
+            {logLines.map((line, i) => (
+              <LogLine
+                key={i}
+                variant={line.variant}
+                tag={line.tag}
+                message={line.message}
+                className={line.dimmed ? "opacity-50" : ""}
+              />
+            ))}
+            <div ref={logEndRef} />
+          </div>
+        </div>
+
+        {hasFailed ? (
+          <div className="flex items-center justify-between gap-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
+            <p className="text-sm text-red-700">Processing failed. Please try again.</p>
+            <Button variant="secondary" onClick={onBack}>
+              Back to Dashboard
+            </Button>
+          </div>
+        ) : (
+          <p className="text-center text-gray-500 text-sm flex items-center justify-center gap-1.5">
+            <InfoIcon className="w-4 h-4" />
+            Do not close this tab. Process typically takes 1-2 minutes.
+          </p>
         )}
       </div>
-    </div>
+    </Shell>
   );
 }

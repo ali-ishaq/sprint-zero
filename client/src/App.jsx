@@ -34,10 +34,6 @@ export default function App() {
     }
   };
 
-  const handleLogin = () => {
-    setView("login");
-  };
-
   const handleLogout = async () => {
     try {
       await apiFetch("/auth/logout", { method: "POST" });
@@ -138,7 +134,7 @@ export default function App() {
   const renderView = () => {
     switch (view) {
       case "login":
-        return <Login onLogin={handleLogin} />;
+        return <Login />;
       case "dashboard":
         return (
           <Dashboard

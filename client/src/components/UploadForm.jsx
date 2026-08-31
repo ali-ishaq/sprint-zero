@@ -1,5 +1,14 @@
 import { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
+import Shell from "./ui/Shell";
+import Card from "./ui/Card";
+import Button from "./ui/Button";
+import {
+  ArrowLeftIcon,
+  UploadCloudIcon,
+  PdfIcon,
+  CloseIcon,
+} from "./ui/Icons";
 
 const ROLES = [
   "Project Manager",
@@ -98,208 +107,215 @@ export default function UploadForm({ onSubmit, onBack }) {
     onSubmit(formData);
   };
 
-  const teamMembersJson = JSON.stringify(teamMembers);
+  const formatBytes = (bytes) => {
+    if (!bytes) return "";
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4">
+    <Shell
+      active="new-project"
+      onNavigate={(id) => {
+        if (id === "dashboard") onBack();
+      }}
+      onNewProject={onBack}
+    >
       <div className="max-w-2xl mx-auto">
-        <div className="mb-8">
-          <button
-            onClick={onBack}
-            className="text-gray-500 hover:text-gray-700 text-sm flex items-center gap-1 mb-4"
-          >
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 19l-7-7 7-7"
-              />
-            </svg>
-            Back to Dashboard
-          </button>
-          <h1 className="text-3xl font-bold text-gray-900">New Project</h1>
-          <p className="text-gray-600 mt-1">
-            Upload a project brief and team list to generate a sprint plan
-          </p>
-        </div>
-
-        <form
-          onSubmit={handleSubmit}
-          className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-6"
+        <button
+          onClick={onBack}
+          className="text-gray-500 hover:text-gray-700 text-sm flex items-center gap-1.5 mb-4 transition-colors"
         >
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Project Name
-            </label>
-            <input
-              type="text"
-              value={projectName}
-              onChange={(e) => setProjectName(e.target.value)}
-              className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                errors.projectName ? "border-red-300" : "border-gray-300"
-              }`}
-              placeholder="e.g., Q3 Mobile App Launch"
-            />
-            {errors.projectName && (
-              <p className="mt-1 text-sm text-red-600">{errors.projectName}</p>
-            )}
+          <ArrowLeftIcon className="w-4 h-4" />
+          Back to Dashboard
+        </button>
+
+        <h1 className="font-display text-2xl font-bold text-gray-900">New Project</h1>
+        <p className="text-gray-500 mt-1 text-sm mb-6">
+          Configure your new sprint initiative and upload the brief.
+        </p>
+
+        <Card className="overflow-hidden">
+          <div className="px-6 pt-5 pb-4 border-b border-line">
+            <h2 className="font-semibold text-gray-900">Project Details</h2>
           </div>
 
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="block text-sm font-medium text-gray-700">
-                Team Members
+          <form onSubmit={handleSubmit} className="p-6 space-y-6">
+            <div>
+              <label htmlFor="projectName" className="block text-sm font-medium text-gray-900 mb-1.5">
+                Project Name
               </label>
-              <button
-                type="button"
-                onClick={addTeamMember}
-                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-              >
-                + Add Member
-              </button>
+              <input
+                id="projectName"
+                type="text"
+                value={projectName}
+                onChange={(e) => setProjectName(e.target.value)}
+                className={`w-full px-4 py-2.5 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-brand/60 placeholder:text-gray-400 ${
+                  errors.projectName ? "border-red-300" : "border-line"
+                }`}
+                placeholder="e.g. Q3 Marketing Campaign"
+              />
+              {errors.projectName && (
+                <p className="mt-1 text-sm text-red-600">{errors.projectName}</p>
+              )}
             </div>
-            <div className="space-y-3">
-              {teamMembers.map((member, index) => (
-                <div
-                  key={index}
-                  className="border border-gray-200 rounded-lg p-4 space-y-3 bg-gray-50"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700">
-                      Member {index + 1}
-                    </span>
-                    {teamMembers.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removeTeamMember(index)}
-                        className="text-red-500 hover:text-red-700 text-sm"
-                      >
-                        Remove
-                      </button>
-                    )}
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">
-                        Name
-                      </label>
-                      <input
-                        type="text"
-                        value={member.name}
-                        onChange={(e) =>
-                          updateTeamMember(index, "name", e.target.value)
-                        }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                        placeholder="Alice Chen"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">
-                        Role
-                      </label>
-                      <select
-                        value={member.role}
-                        onChange={(e) =>
-                          updateTeamMember(index, "role", e.target.value)
-                        }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                      >
-                        <option value="">Select role</option>
-                        {ROLES.map((role) => (
-                          <option key={role} value={role}>
-                            {role}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">
-                        Email
-                      </label>
-                      <input
-                        type="email"
-                        value={member.email}
-                        onChange={(e) =>
-                          updateTeamMember(index, "email", e.target.value)
-                        }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                        placeholder="alice@example.com"
-                      />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            {errors.teamMembers && (
-              <p className="mt-1 text-sm text-red-600">{errors.teamMembers}</p>
-            )}
-            <p className="mt-1 text-xs text-gray-500">
-              Each member will be assigned tasks based on their role and receive
-              emails
-            </p>
-          </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Project Brief (PDF)
-            </label>
-            <div
-              {...getRootProps()}
-              className={`relative border-2 border-dashed rounded-xl p-8 text-center transition-colors ${
-                isDragActive
-                  ? "border-blue-500 bg-blue-50"
-                  : errors.pdf
-                    ? "border-red-300 bg-red-50"
-                    : "border-gray-300"
-              }`}
-            >
-              <input {...getInputProps()} />
-              <svg
-                className="mx-auto h-12 w-12 text-gray-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                />
-              </svg>
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-medium text-gray-900">
+                  Team Members
+                </label>
+                <button
+                  type="button"
+                  onClick={addTeamMember}
+                  className="text-sm text-brand hover:text-brand-dark font-medium"
+                >
+                  + Add Member
+                </button>
+              </div>
+              <div className="space-y-3">
+                {teamMembers.map((member, index) => (
+                  <div
+                    key={index}
+                    className="border border-line rounded-lg p-4 space-y-3 bg-gray-50"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-700">
+                        Member {index + 1}
+                      </span>
+                      {teamMembers.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeTeamMember(index)}
+                          className="text-red-500 hover:text-red-700 text-sm"
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Name
+                        </label>
+                        <input
+                          type="text"
+                          value={member.name}
+                          onChange={(e) =>
+                            updateTeamMember(index, "name", e.target.value)
+                          }
+                          className="w-full px-3 py-2 border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/60 text-sm"
+                          placeholder="Alice Chen"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Role
+                        </label>
+                        <select
+                          value={member.role}
+                          onChange={(e) =>
+                            updateTeamMember(index, "role", e.target.value)
+                          }
+                          className="w-full px-3 py-2 border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/60 text-sm"
+                        >
+                          <option value="">Select role</option>
+                          {ROLES.map((role) => (
+                            <option key={role} value={role}>
+                              {role}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Email
+                        </label>
+                        <input
+                          type="email"
+                          value={member.email}
+                          onChange={(e) =>
+                            updateTeamMember(index, "email", e.target.value)
+                          }
+                          className="w-full px-3 py-2 border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/60 text-sm"
+                          placeholder="alice@example.com"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {errors.teamMembers && (
+                <p className="mt-1 text-sm text-red-600">{errors.teamMembers}</p>
+              )}
+              <p className="mt-1 text-xs text-gray-500">
+                Each member will be assigned tasks based on their role and receive
+                emails
+              </p>
+            </div>
+
+            <div>
+              <span className="block text-sm font-medium text-gray-900 mb-2">
+                Project Brief (PDF)
+              </span>
+
               {pdfFile ? (
-                <div className="mt-4">
-                  <p className="font-medium text-gray-900">{pdfFile.name}</p>
-                  <p className="text-sm text-gray-500">
-                    {(pdfFile.size / 1024).toFixed(1)} KB
-                  </p>
+                <div className="flex items-center gap-3 p-3 bg-gray-50 border border-line rounded-lg">
+                  <span className="w-10 h-10 rounded-lg bg-red-100 text-red-600 flex items-center justify-center shrink-0">
+                    <PdfIcon className="w-5 h-5" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-gray-900 truncate">{pdfFile.name}</p>
+                    <p className="text-sm text-gray-500">{formatBytes(pdfFile.size)}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setPdfFile(null)}
+                    aria-label="Remove file"
+                    className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-200 transition-colors"
+                  >
+                    <CloseIcon className="w-4 h-4" />
+                  </button>
                 </div>
               ) : (
-                <p className="mt-4 text-gray-600">
-                  Drag & drop a PDF file, or click to select
-                </p>
+                <div
+                  {...getRootProps()}
+                  className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${
+                    isDragActive
+                      ? "border-brand bg-brand-light"
+                      : errors.pdf
+                        ? "border-red-300 bg-red-50"
+                        : "border-gray-300 hover:border-brand"
+                  }`}
+                >
+                  <input {...getInputProps()} />
+                  <span className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 text-gray-400 mb-3">
+                    <UploadCloudIcon className="w-6 h-6" />
+                  </span>
+                  <p className="text-gray-600 text-sm">
+                    Drag &amp; drop a PDF file, or <span className="text-brand font-medium">click to select</span>
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">Single PDF, up to 10 MB</p>
+                </div>
               )}
-              {errors.pdf && (
-                <p className="mt-2 text-sm text-red-600">{errors.pdf}</p>
-              )}
-            </div>
-          </div>
 
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="w-full py-3 px-4 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isSubmitting ? "Processing..." : "Generate Sprint Plan"}
-          </button>
-        </form>
+              {errors.pdf && <p className="mt-1 text-sm text-red-600">{errors.pdf}</p>}
+            </div>
+
+            <div className="h-px bg-line" />
+
+            <div className="flex items-center justify-end gap-3">
+              <Button type="button" variant="secondary" onClick={onBack}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? "Processing..." : "Generate Sprint Plan"}
+              </Button>
+            </div>
+          </form>
+        </Card>
       </div>
-    </div>
+    </Shell>
   );
 }

@@ -1,11 +1,17 @@
 import { useEffect, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { apiFetch } from "../lib/api";
+import Shell from "./ui/Shell";
+import Card from "./ui/Card";
+import Button from "./ui/Button";
+import StatusBadge from "./ui/StatusBadge";
+import { SearchIcon, PlusIcon, DocumentIcon, CalendarIcon, CheckCircleIcon, VideoIcon, MailIcon, GridIcon, ArrowRightIcon } from "./ui/Icons";
 
 export default function Dashboard({ user, onNewProject, onViewProject, onLogout }) {
   const [runs, setRuns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     fetchRuns();
@@ -25,203 +31,185 @@ export default function Dashboard({ user, onNewProject, onViewProject, onLogout 
   };
 
   const formatDate = (timestamp) => {
-  if (!timestamp) return "Unknown";
-  try {
-    const date = timestamp.toDate
-      ? timestamp.toDate()
-      : new Date(timestamp * 1000); // seconds -> ms
-    return formatDistanceToNow(date, { addSuffix: true });
-  } catch {
-    return "Unknown";
-  }
-};
-
-  const getStatusBadge = (status) => {
-    const styles = {
-      running: "bg-blue-100 text-blue-800",
-      complete: "bg-green-100 text-green-800",
-      error: "bg-red-100 text-red-800",
-    };
-    return (
-      <span
-        className={`px-2 py-1 text-xs font-medium rounded-full ${styles[status] || "bg-gray-100 text-gray-800"}`}
-      >
-        {status}
-      </span>
-    );
+    if (!timestamp) return "Unknown";
+    try {
+      let date;
+      if (timestamp.toDate) {
+        date = timestamp.toDate();
+      } else if (timestamp._seconds) {
+        date = new Date(timestamp._seconds * 1000);
+      } else if (typeof timestamp === "number" && timestamp < 1e12) {
+        date = new Date(timestamp * 1000);
+      } else {
+        date = new Date(timestamp);
+      }
+      return formatDistanceToNow(date, { addSuffix: true });
+    } catch {
+      return "Unknown";
+    }
   };
 
+  const filteredRuns = runs.filter((run) =>
+    (run.projectName || "").toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const search = (
+    <div className="relative w-full max-w-sm">
+      <SearchIcon className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+      <input
+        type="text"
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        placeholder="Search projects..."
+        aria-label="Search projects"
+        className="w-full pl-9 pr-3 py-2 bg-white border border-line rounded-lg text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand/60"
+      />
+    </div>
+  );
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <svg
-              className="w-8 h-8 text-blue-600"
-              fill="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" />
-            </svg>
-            <h1 className="text-xl font-bold text-gray-900">SprintZero</h1>
-          </div>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-gray-600">{user.displayName}</span>
-            <button
-              onClick={onLogout}
-              className="text-sm text-gray-500 hover:text-gray-700"
-            >
-              Sign out
-            </button>
-          </div>
+    <Shell
+      active="dashboard"
+      user={user}
+      search={search}
+      onNavigate={(id) => {
+        if (id === "new-project") onNewProject();
+      }}
+      onNewProject={onNewProject}
+      onLogout={onLogout}
+    >
+      <div className="flex items-center justify-between mb-8 animate-fade-up">
+        <div>
+          <h1 className="font-display text-2xl font-bold text-gray-900">Your Projects</h1>
+          <p className="text-gray-500 mt-1 text-sm">
+            {filteredRuns.length} project{filteredRuns.length !== 1 ? "s" : ""} total
+          </p>
         </div>
-      </header>
+        <Button onClick={onNewProject} className="transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-brand/20">
+          <PlusIcon className="w-4 h-4" strokeWidth={2.2} />
+          New Project
+        </Button>
+      </div>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">Your Projects</h2>
-            <p className="text-gray-500 mt-1">
-              {runs.length} project{runs.length !== 1 ? "s" : ""} total
-            </p>
-          </div>
-          <button
-            onClick={onNewProject}
-            className="px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors flex items-center gap-2"
-          >
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 4v16m8-8H4"
-              />
-            </svg>
-            New Project
-          </button>
+      {error && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+          {error}
         </div>
+      )}
 
-        {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
-            {error}
-          </div>
-        )}
-
-        {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 animate-pulse"
-              >
-                <div className="h-6 bg-gray-200 rounded w-3/4 mb-4"></div>
-                <div className="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
-                <div className="h-4 bg-gray-200 rounded w-1/3"></div>
-              </div>
-            ))}
-          </div>
-        ) : runs.length === 0 ? (
-          <div className="text-center py-16">
-            <svg
-              className="mx-auto h-16 w-16 text-gray-300"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-              />
-            </svg>
-            <h3 className="mt-4 text-lg font-medium text-gray-900">
-              No projects yet
-            </h3>
-            <p className="mt-2 text-gray-500">
-              Create your first sprint plan by uploading a project brief
-            </p>
-            <button
-              onClick={onNewProject}
-              className="mt-6 px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
-            >
-              Create Project
-            </button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {runs.map((run) => (
-              <div
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="bg-white rounded-card border border-line p-6 animate-pulse">
+              <div className="h-5 bg-gray-200 rounded w-3/4 mb-3"></div>
+              <div className="h-3 bg-gray-200 rounded w-1/2 mb-6"></div>
+              <div className="h-4 bg-gray-200 rounded w-2/3 mb-2"></div>
+              <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+            </div>
+          ))}
+        </div>
+      ) : filteredRuns.length === 0 ? (
+        <div className="text-center py-20">
+          <span className="mx-auto inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gray-100 text-gray-300">
+            <GridIcon className="w-8 h-8" />
+          </span>
+          <h3 className="mt-4 text-lg font-medium text-gray-900">
+            {runs.length === 0 ? "No projects yet" : "No matching projects"}
+          </h3>
+          <p className="mt-2 text-gray-500 text-sm">
+            {runs.length === 0
+              ? "Create your first sprint plan by uploading a project brief"
+              : `No projects match "${searchQuery}".`}
+          </p>
+          <Button onClick={onNewProject} size="lg" className="mt-6">
+            Create Project
+          </Button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {filteredRuns.map((run, i) => {
+            const created = formatDate(run.createdAt);
+            return (
+              <Card
                 key={run.id}
+                className="p-6 hover:border-brand/30 transition-all duration-300 hover:-translate-y-1 hover:shadow-card animate-fade-up cursor-pointer"
+                style={{ animationDelay: `${Math.min(i, 8) * 70}ms` }}
                 onClick={() => onViewProject(run.id)}
-                className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:shadow-md hover:border-blue-300 transition-shadow cursor-pointer"
               >
-                <div className="flex items-start justify-between mb-3">
-                  <h3 className="font-semibold text-gray-900">
+                <div className="flex items-start justify-between gap-2 mb-3">
+                  <h3 className="font-semibold text-gray-900 leading-snug">
                     {run.projectName}
                   </h3>
-                  {getStatusBadge(run.status)}
+                  <StatusBadge status={run.status} className="shrink-0" />
                 </div>
-                <div className="text-sm text-gray-500 mb-3">
-                  <p>Created {formatDate(run.createdAt._seconds)}</p>
-                </div>
-                <div className="flex gap-2 text-center mb-4">
-                  <div className="flex-1 p-2 bg-gray-50 rounded-lg">
-                    <div className="text-lg font-bold text-gray-900">
-                      {run.taskCount || 0}
-                    </div>
-                    <div className="text-xs text-gray-500">Tasks</div>
-                  </div>
-                  <div className="flex-1 p-2 bg-gray-50 rounded-lg">
-                    <div className="text-lg font-bold text-gray-900">
-                      {run.meetingCount || 0}
-                    </div>
-                    <div className="text-xs text-gray-500">Meetings</div>
-                  </div>
-                  {/* <div className="p-2 bg-gray-50 rounded-lg">
-                    <div className="text-lg font-bold text-gray-900">
-                      {run.emailsSent || 0}
-                    </div>
-                    <div className="text-xs text-gray-500">Emails</div>
-                  </div> */}
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {run.sheetUrl && (
-                    <a
-                      href={run.sheetUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      className="flex-1 text-center py-2 px-3 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors"
-                    >
-                      Sheet
-                    </a>
-                  )}
-                  {run.calendarLink && (
-                    <a
-                      href={run.calendarLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      className="flex-1 text-center py-2 px-3 bg-green-50 text-green-700 rounded-lg text-sm font-medium hover:bg-green-100 transition-colors"
-                    >
-                      Calendar
-                    </a>
-                  )}
-                  <span className="flex-1 text-center py-2 px-3 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors">
-                    Details
+                <p className="text-sm text-gray-500 mb-4">
+                  Created {created}
+                </p>
+
+                <div className="h-px bg-line mb-4" />
+
+                <div className="flex items-center gap-5 mb-5">
+                  <span className="inline-flex items-center gap-2 text-sm">
+                    <CheckCircleIcon className="w-4 h-4 text-gray-400" />
+                    <span className="font-semibold text-gray-900">{run.taskCount || 0}</span>
+                    <span className="text-gray-500">Tasks</span>
+                  </span>
+                  <span className="inline-flex items-center gap-2 text-sm">
+                    <VideoIcon className="w-4 h-4 text-gray-400" />
+                    <span className="font-semibold text-gray-900">{run.meetingCount || 0}</span>
+                    <span className="text-gray-500">Mtgs</span>
+                  </span>
+                  <span className="inline-flex items-center gap-2 text-sm">
+                    <MailIcon className="w-4 h-4 text-gray-400" />
+                    <span className="font-semibold text-gray-900">{run.emailsSent || 0}</span>
+                    <span className="text-gray-500">Mails</span>
                   </span>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </main>
-    </div>
+
+                <div className="flex items-center gap-2">
+                  {run.sheetUrl && (
+                    <button
+                      type="button"
+                      aria-label={`Open sheet for ${run.projectName}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        window.open(run.sheetUrl, "_blank", "noopener,noreferrer");
+                      }}
+                      className="w-9 h-9 flex items-center justify-center rounded-lg bg-gray-50 border border-line text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors"
+                    >
+                      <DocumentIcon className="w-4 h-4" />
+                    </button>
+                  )}
+                  {run.calendarLink && (
+                    <button
+                      type="button"
+                      aria-label={`Open calendar for ${run.projectName}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        window.open(run.calendarLink, "_blank", "noopener,noreferrer");
+                      }}
+                      className="w-9 h-9 flex items-center justify-center rounded-lg bg-gray-50 border border-line text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors"
+                    >
+                      <CalendarIcon className="w-4 h-4" />
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onViewProject(run.id);
+                    }}
+                    className="ml-auto inline-flex items-center gap-1 text-sm font-medium text-brand hover:text-brand-dark transition-colors"
+                  >
+                    Details
+                    <ArrowRightIcon className="w-4 h-4" />
+                  </button>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+    </Shell>
   );
 }

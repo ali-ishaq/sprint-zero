@@ -1,20 +1,14 @@
 import { useEffect, useState, useRef } from "react";
 import { apiFetch } from "../lib/api";
-
-function getStatusBadge(status) {
-  const styles = {
-    running: "bg-blue-100 text-blue-800",
-    complete: "bg-green-100 text-green-800",
-    error: "bg-red-100 text-red-800",
-  };
-  return (
-    <span
-      className={`px-2 py-1 text-xs font-medium rounded-full ${styles[status] || "bg-gray-100 text-gray-800"}`}
-    >
-      {status}
-    </span>
-  );
-}
+import Shell from "./ui/Shell";
+import StatusBadge from "./ui/StatusBadge";
+import {
+  ArrowLeftIcon,
+  VideoIcon,
+  ClockIcon,
+  CalendarIcon,
+  SheetIcon,
+} from "./ui/Icons";
 
 const TABS = ["Tasks", "Meetings", "Team", "Timeline"];
 
@@ -23,7 +17,7 @@ function TasksTab({ tasks, onToggle }) {
 
   return (
     <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-gray-200 text-sm">
+      <table className="min-w-full divide-y divide-line text-sm">
         <thead className="bg-gray-50">
           <tr>
             <th className="px-4 py-3 text-left font-medium text-gray-500">Done</th>
@@ -35,7 +29,7 @@ function TasksTab({ tasks, onToggle }) {
             <th className="px-4 py-3 text-left font-medium text-gray-500">Description</th>
           </tr>
         </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
+        <tbody className="bg-white divide-y divide-line">
           {tasks.length === 0 && (
             <tr>
               <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
@@ -50,7 +44,7 @@ function TasksTab({ tasks, onToggle }) {
                   type="checkbox"
                   checked={Boolean(t.status)}
                   onChange={() => toggle(t.id, t.status)}
-                  className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  className="h-5 w-5 rounded border-line text-brand focus:ring-brand/60"
                 />
               </td>
               <td className="px-4 py-3 font-medium text-gray-900">
@@ -80,7 +74,7 @@ function MeetingsTab({ meetings }) {
         <div className="text-center text-gray-500 py-8">No meetings for this project.</div>
       )}
       {meetings.map((m, i) => (
-        <div key={i} className="bg-white border border-gray-200 rounded-lg p-4">
+        <div key={i} className="bg-white border border-line rounded-card p-4">
           <div className="flex items-center justify-between mb-2">
             <h4 className="font-semibold text-gray-900">{m.meeting_title}</h4>
             <span className="text-sm text-gray-500">
@@ -95,10 +89,7 @@ function MeetingsTab({ meetings }) {
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-3 py-2 mb-3 bg-green-100 text-green-800 rounded-lg text-sm font-medium hover:bg-green-200 transition-colors"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+              <VideoIcon className="w-4 h-4" />
               Join meeting
             </a>
           )}
@@ -107,10 +98,10 @@ function MeetingsTab({ meetings }) {
             {(m.attendees || []).map((a, j) => (
               <span
                 key={j}
-                className="px-2 py-1 bg-blue-50 text-blue-700 rounded-lg text-xs"
+                className="px-2 py-1 bg-brand-light text-brand rounded-lg text-xs"
               >
                 {a.name}
-                <span className="text-blue-400 ml-1">({a.email})</span>
+                <span className="text-brand/60 ml-1">({a.email})</span>
               </span>
             ))}
           </div>
@@ -149,7 +140,7 @@ function TeamTab({ teamMembers, tasks }) {
         const done = userTasks.filter((t) => t.status).length;
         const email = m.email || userTasks[0]?.email || "—";
         return (
-          <div key={i} className="bg-white border border-gray-200 rounded-lg p-4">
+          <div key={i} className="bg-white border border-line rounded-card p-4">
             <div className="flex items-center justify-between mb-2">
               <div>
                 <h4 className="font-semibold text-gray-900">{m.name}</h4>
@@ -225,8 +216,7 @@ function TimelineTab({ tasks }) {
     <div>
       <div ref={ref} className="overflow-x-auto">
         <div className="relative min-w-[600px]">
-          {/* Header dates */}
-          <div className="flex border-b border-gray-200 mb-2" style={{ marginLeft: "200px" }}>
+          <div className="flex border-b border-line mb-2" style={{ marginLeft: "200px" }}>
             {Array.from({ length: totalDays }).map((_, i) => {
               const d = new Date(minTime + i * dayMs).toISOString().slice(0, 10);
               return (
@@ -323,20 +313,16 @@ function TodayUpcomingWidget({ tasks }) {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-      <div className="bg-white border border-amber-200 rounded-xl p-4">
+      <div className="bg-white border border-amber-200 rounded-card p-4">
         <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-          <svg className="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
+          <ClockIcon className="w-5 h-5 text-amber-500" />
           Today&apos;s Tasks
         </h3>
         {renderList(todays, "No tasks due or active today.")}
       </div>
-      <div className="bg-white border border-blue-200 rounded-xl p-4">
+      <div className="bg-white border border-blue-200 rounded-card p-4">
         <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-          <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
+          <CalendarIcon className="w-5 h-5 text-blue-500" />
           Upcoming (next 7 days)
         </h3>
         {renderList(upcoming, "No tasks due in the next 7 days.")}
@@ -370,7 +356,6 @@ export default function ProjectDetail({ runId, onBack }) {
   }, [runId]);
 
   const handleToggleStatus = async (taskId, status) => {
-    // Optimistically update the UI immediately
     setRun((prev) => ({
       ...prev,
       tasks: (prev.tasks || []).map((t) =>
@@ -389,7 +374,6 @@ export default function ProjectDetail({ runId, onBack }) {
       setRun((prev) => ({ ...prev, tasks: data.tasks }));
     } catch (err) {
       console.error("Status update failed:", err);
-      // Roll back the optimistic change since the server rejected it
       setRun((prev) => ({
         ...prev,
         tasks: (prev.tasks || []).map((t) =>
@@ -402,22 +386,24 @@ export default function ProjectDetail({ runId, onBack }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        Loading project...
-      </div>
+      <Shell active="dashboard" onNavigate={() => {}}>
+        <div className="min-h-full flex items-center justify-center py-24 text-gray-500">
+          Loading project...
+        </div>
+      </Shell>
     );
   }
 
   if (error || !run) {
     return (
-      <div className="min-h-screen bg-gray-50 py-12 px-4">
-        <div className="max-w-2xl mx-auto text-center">
+      <Shell active="dashboard" onNavigate={() => {}}>
+        <div className="max-w-2xl mx-auto text-center py-24">
           <p className="text-red-600 mb-4">{error || "Project not found"}</p>
-          <button onClick={onBack} className="text-blue-600 hover:underline">
+          <button onClick={onBack} className="text-brand hover:underline">
             Back to Dashboard
           </button>
         </div>
-      </div>
+      </Shell>
     );
   }
 
@@ -428,45 +414,40 @@ export default function ProjectDetail({ runId, onBack }) {
   const progress = tasks.length ? Math.round((doneCount / tasks.length) * 100) : 0;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={onBack}
-                className="text-gray-500 hover:text-gray-700 text-sm flex items-center gap-1"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-                Dashboard
-              </button>
-            </div>
-            <span className="text-sm text-gray-600">{run.projectName}</span>
-          </div>
-        </div>
-      </header>
+    <Shell
+      active="dashboard"
+      onNavigate={(id) => {
+        if (id === "dashboard") onBack();
+      }}
+    >
+      <div className="max-w-6xl mx-auto">
+        <button
+          onClick={onBack}
+          className="text-gray-500 hover:text-gray-700 text-sm flex items-center gap-1.5 mb-4 transition-colors"
+        >
+          <ArrowLeftIcon className="w-4 h-4" />
+          Back to Dashboard
+        </button>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-6 flex items-start justify-between">
+        <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-bold text-gray-900">{run.projectName}</h1>
-              {getStatusBadge(run.status)}
+              <h1 className="font-display text-3xl font-bold text-gray-900">{run.projectName}</h1>
+              <StatusBadge status={run.status} />
             </div>
             <p className="text-gray-500 mt-1">
               {run.createdAt ? new Date(run.createdAt._seconds * 1000).toLocaleDateString() : "—"}
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             {run.sheetUrl && (
               <a
                 href={run.sheetUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-4 py-2 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-100"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-brand-light text-brand rounded-lg text-sm font-medium hover:bg-brand/10"
               >
+                <SheetIcon className="w-4 h-4" />
                 Google Sheet
               </a>
             )}
@@ -475,8 +456,9 @@ export default function ProjectDetail({ runId, onBack }) {
                 href={run.calendarLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-4 py-2 bg-green-50 text-green-700 rounded-lg text-sm font-medium hover:bg-green-100"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-green-50 text-green-700 rounded-lg text-sm font-medium hover:bg-green-100"
               >
+                <CalendarIcon className="w-4 h-4" />
                 Google Calendar
               </a>
             )}
@@ -490,54 +472,51 @@ export default function ProjectDetail({ runId, onBack }) {
 
         <TodayUpcomingWidget tasks={tasks} />
 
-        {/* Stats row */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
-          <div className="rounded-xl bg-white border border-gray-200 p-4 text-center">
-            <div className="text-3xl font-bold text-gray-900">{tasks.length}</div>
+          <div className="rounded-card bg-white border border-line p-4 text-center">
+            <div className="text-3xl font-bold text-gray-900 font-display">{tasks.length}</div>
             <div className="text-sm text-gray-500">Tasks</div>
           </div>
-          <div className="rounded-xl bg-white border border-gray-200 p-4 text-center">
-            <div className="text-3xl font-bold text-green-600">{doneCount}</div>
+          <div className="rounded-card bg-white border border-line p-4 text-center">
+            <div className="text-3xl font-bold text-green-600 font-display">{doneCount}</div>
             <div className="text-sm text-gray-500">Completed</div>
           </div>
-          <div className="rounded-xl bg-white border border-gray-200 p-4 text-center">
-            <div className="text-3xl font-bold text-blue-600">{progress}%</div>
+          <div className="rounded-card bg-white border border-line p-4 text-center">
+            <div className="text-3xl font-bold text-blue-600 font-display">{progress}%</div>
             <div className="text-sm text-gray-500">Progress</div>
           </div>
-          <div className="rounded-xl bg-white border border-gray-200 p-4 text-center">
-            <div className="text-3xl font-bold text-purple-600">{meetings.length}</div>
+          <div className="rounded-card bg-white border border-line p-4 text-center">
+            <div className="text-3xl font-bold text-purple-600 font-display">{meetings.length}</div>
             <div className="text-sm text-gray-500">Meetings</div>
           </div>
-          <div className="rounded-xl bg-white border border-gray-200 p-4 text-center">
-            <div className="text-3xl font-bold text-orange-600">{teamSize || "—"}</div>
+          <div className="rounded-card bg-white border border-line p-4 text-center">
+            <div className="text-3xl font-bold text-orange-600 font-display">{teamSize || "—"}</div>
             <div className="text-sm text-gray-500">Team Size</div>
           </div>
         </div>
 
-        {/* Progress bar */}
-        <div className="bg-white border border-gray-200 rounded-xl p-4 mb-8">
+        <div className="bg-white border border-line rounded-card p-4 mb-8">
           <div className="flex items-center justify-between text-sm text-gray-500 mb-2">
             <span>Task Completion</span>
             <span>{doneCount}/{tasks.length || 0}</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-3">
             <div
-              className="bg-blue-600 h-3 rounded-full transition-all"
+              className="bg-brand h-3 rounded-full transition-all"
               style={{ width: `${progress}%` }}
             />
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-          <div className="flex border-b border-gray-200">
+        <div className="bg-white border border-line rounded-card overflow-hidden">
+          <div className="flex border-b border-line">
             {TABS.map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
                 className={`px-4 py-3 text-sm font-medium ${
                   activeTab === tab
-                    ? "text-blue-600 border-b-2 border-blue-600"
+                    ? "text-brand border-b-2 border-brand"
                     : "text-gray-500 hover:text-gray-700"
                 }`}
               >
@@ -554,7 +533,7 @@ export default function ProjectDetail({ runId, onBack }) {
             {activeTab === "Timeline" && <TimelineTab tasks={tasks} />}
           </div>
         </div>
-      </main>
-    </div>
+      </div>
+    </Shell>
   );
 }
