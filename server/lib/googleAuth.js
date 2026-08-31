@@ -35,11 +35,10 @@ export function getAuthUrl(promptConsent = true) {
     access_type: "offline",
     scope: [
       "https://www.googleapis.com/auth/spreadsheets",
-      "https://www.googleapis.com/auth/drive.file",
+      "https://www.googleapis.com/auth/drive",
       "https://www.googleapis.com/auth/calendar",
       "https://www.googleapis.com/auth/gmail.send",
       "https://www.googleapis.com/auth/userinfo.email",
-      "https://www.googleapis.com/auth/drive.file",
     ],
     prompt: promptConsent ? "consent" : undefined,
   });

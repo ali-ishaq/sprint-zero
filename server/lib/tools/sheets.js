@@ -31,7 +31,10 @@ export async function createSheet(tasks, meetings, auth, projectName = "SprintZe
       },
     });
   } catch (err) {
-    console.warn("Failed to set sheet sharing permission:", err.message);
+    console.error(
+      "[sheets] Failed to set public sharing permission — sheet may not be accessible to others:",
+      err?.response?.data?.error?.message || err.message,
+    );
   }
 
   // Tasks sheet
