@@ -30,7 +30,7 @@ const initialTeamMember = { name: '', role: '', email: '' };
 // ];
 
 export default function UploadForm({ onSubmit, onBack }) {
-  const [projectName, setProjectName] = useState("StudyBuddyAI");
+  const [projectName, setProjectName] = useState("");
   const [teamMembers, setTeamMembers] = useState([initialTeamMember]);
   const [pdfFile, setPdfFile] = useState(null);
   const [errors, setErrors] = useState({});
